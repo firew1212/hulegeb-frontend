@@ -3,5 +3,5 @@
 
 export const siteConfig = {
   name: "Hulegeb",
-  description: "Your marketplace is being built.",
+  description: "A bilingual Amharic and English marketplace for Injibara, Amhara, Ethiopia.",
 } as const;
