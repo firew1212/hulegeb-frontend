@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-export function Footer() {
+import { useDictionary } from "@/i18n/provider";
+
+export function Footer({ locale }: { locale?: string }) {
+  const dict = useDictionary();
   const [year, setYear] = useState<number | null>(null);
 
   useEffect(() => {
@@ -17,14 +20,14 @@ export function Footer() {
     <footer className="border-t border-border bg-muted">
       <div className="container-page flex flex-col gap-4 py-8 md:flex-row md:items-center md:justify-between">
         <p className="text-sm text-muted-foreground">
-          &copy; {year ?? ""} Hulegeb. All rights reserved.
+          &copy; {year ?? ""} Hulegeb. {dict.footer.rights}
         </p>
         <nav aria-label="Footer navigation" className="flex items-center gap-6">
           <Link
-            href="/"
+            href={locale ? `/${locale}` : "/"}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            Home
+            {dict.footer.home}
           </Link>
         </nav>
       </div>

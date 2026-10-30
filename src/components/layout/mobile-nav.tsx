@@ -3,13 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/#about", label: "About" },
-  { href: "/#approach", label: "Approach" },
-];
+import { useDictionary, useLocale } from "@/i18n/provider";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
-export function MobileNav() {
+export function MobileNav({ locale }: { locale?: string }) {
+  const dict = useDictionary();
+  const currentLocale = useLocale();
+  const loc = locale ?? currentLocale;
+  const links = [
+    { href: `/${loc}`, label: dict.nav.home },
+    { href: `/${loc}/catalog`, label: dict.nav.catalog },
+  ];
+
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -39,11 +44,11 @@ export function MobileNav() {
         type="button"
         aria-expanded={open}
         aria-controls="mobile-navigation"
-        aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+        aria-label={open ? dict.mobileNav.closeMenu : dict.mobileNav.openMenu}
         onClick={() => setOpen((value) => !value)}
         className="inline-flex h-10 items-center justify-center rounded-full border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        {open ? "Close" : "Menu"}
+        {open ? dict.mobileNav.close : dict.mobileNav.menu}
       </button>
       {open ? (
         <div
@@ -57,7 +62,7 @@ export function MobileNav() {
           >
             {links.map((link) => (
               <Link
-                key={link.href}
+                key={link.href + link.label}
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -65,6 +70,9 @@ export function MobileNav() {
                 {link.label}
               </Link>
             ))}
+            <div className="px-3 py-2">
+              <LanguageSwitcher />
+            </div>
           </nav>
         </div>
       ) : null}
