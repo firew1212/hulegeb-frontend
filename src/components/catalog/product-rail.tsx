@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/provider";
 
 type ProductRailProps = {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ type ProductRailProps = {
 };
 
 export function ProductRail({ children, label, className }: ProductRailProps) {
+  const dict = useDictionary();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -55,7 +57,7 @@ export function ProductRail({ children, label, className }: ProductRailProps) {
         ref={scrollerRef}
         className="flex gap-4 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="region"
-        aria-label={label ?? "Product rail"}
+        aria-label={label ?? dict.catalog.productRailLabel}
         tabIndex={0}
       >
         {children}
@@ -65,7 +67,7 @@ export function ProductRail({ children, label, className }: ProductRailProps) {
           type="button"
           onClick={() => scrollByAmount("left")}
           disabled={!canScrollLeft}
-          aria-label="Scroll products left"
+          aria-label={dict.catalog.scrollLeft}
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           ←
@@ -74,7 +76,7 @@ export function ProductRail({ children, label, className }: ProductRailProps) {
           type="button"
           onClick={() => scrollByAmount("right")}
           disabled={!canScrollRight}
-          aria-label="Scroll products right"
+          aria-label={dict.catalog.scrollRight}
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           →

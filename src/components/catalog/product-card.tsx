@@ -26,7 +26,7 @@ export function ProductCard({ product, className, locale: localeProp }: ProductC
   return (
     <article
       className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-background transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        "group flex h-full flex-col overflow-hidden rounded-3xl border border-border/70 bg-surface shadow-soft transition duration-200 hover:-translate-y-px hover:shadow-lift motion-reduce:transform-none motion-reduce:transition-none",
         className,
       )}
     >
@@ -41,16 +41,17 @@ export function ProductCard({ product, className, locale: localeProp }: ProductC
               src={image.imageUrl}
               alt={alt ?? ""}
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02] motion-reduce:transform-none motion-reduce:transition-none"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
               {dict.common.noImage}
             </div>
           )}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </div>
-        <div className="flex flex-1 flex-col gap-2 p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="flex flex-1 flex-col gap-2 p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {category}
           </p>
           <h3 className="text-base font-semibold tracking-tight text-foreground line-clamp-2">
@@ -61,11 +62,13 @@ export function ProductCard({ product, className, locale: localeProp }: ProductC
               {description}
             </p>
           ) : null}
-          <div className="mt-auto flex items-center justify-between pt-2">
+          <div className="mt-auto flex items-center justify-between pt-3">
             <span className="text-sm font-semibold text-foreground">
               {priceRange(product.variants, locale)}
             </span>
-            <span className="text-xs text-accent">{dict.common.viewDetails}</span>
+            <span className="text-xs font-medium text-brand transition-colors group-hover:text-brand-hover motion-reduce:transition-none">
+              {dict.common.viewDetails}
+            </span>
           </div>
         </div>
       </Link>

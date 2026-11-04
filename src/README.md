@@ -1,41 +1,63 @@
-# Hulegeb Frontend Design Direction
+# Frontend architecture
 
-## Visual reference
+The frontend is a Next.js App Router application using React, TypeScript, Tailwind
+CSS v4, and pnpm. Preserve existing authentication, API behavior, localized routes,
+and user-facing functionality when changing its structure.
 
-Apple's official website (https://www.apple.com/) is the ongoing UI/UX reference for
-the Hulegeb frontend. Every future frontend milestone must follow the same
-Apple-inspired design direction: clarity, confident typography, deliberate
-whitespace, balanced composition, simplicity, subtle interaction states, and
-accessibility.
+## Source layout
 
-Hulegeb must keep its own marketplace identity. Do not clone Apple's website, copy
-its branding, logos, proprietary assets, exact content, or product-specific
-interface.
+- `app/`: root document and localized App Router pages/layouts.
+- `components/`: reusable UI, layout, authentication, catalog, dashboard, and
+  localization components.
+- `config/`: stable application metadata and validated API URL configuration.
+- `i18n/`: locale definitions, typed dictionaries, and provider/hooks.
+- `lib/`: shared API transport, feature API modules, authentication, and helpers.
+- `types/`: API-facing domain types.
 
-## Design tokens
+Catalog and order requests live in `lib/api/`; the shared HTTP client remains in
+`lib/api.ts`, and authentication endpoints remain in `lib/auth-api.ts`. The
+client resolves only API-relative paths against `NEXT_PUBLIC_API_BASE_URL`,
+attaches in-memory access tokens to protected requests, and uses credentialed
+requests for the backend's HttpOnly refresh-cookie flow.
 
-Semantic color, typography, spacing, radius, and layout tokens are defined in
-`src/app/globals.css` using Tailwind CSS v4 `@theme` and CSS custom properties.
+## Localization and design tokens
 
-## Reusable components
+English (`en`) and Amharic (`am`) routes are rooted at `app/[locale]/`. Shared
+strings and locale-specific metadata are maintained in `i18n/dictionaries/`.
+The proxy selects the locale from the URL, locale cookie, or `Accept-Language`,
+and forwards the active route locale so the root layout can render the matching
+`<html lang>` value on the server. `LanguageSwitcher` preserves query parameters
+for equivalent localized routes and falls back to the locale home for unsupported
+paths. Keep both typed dictionaries key- and placeholder-compatible; user-facing
+API failures should use the localized messages in `i18n/errors.ts`.
 
-- UI primitives: `src/components/ui/` (Button, Container, SectionHeading).
-- Shared layout: `src/components/layout/` (Header, Footer).
+Semantic style tokens are defined in `app/globals.css` using CSS custom properties
+and Tailwind CSS v4 `@theme`. Hulegeb's official brand color is `#7752F7`, exposed
+as the `brand` token. Existing interface colors are intentionally preserved in
+this architecture milestone; applying the complete design system is deferred.
 
-## Signature color
+## Permanent design guidelines
 
-Hulegeb uses a single signature brand color: **Hulegeb Deep Teal `#0F5F52`**
-(light theme) and **`#2DD4BF`** (dark theme). It is used sparingly and only where it
-adds brand recognition or interaction clarity, such as small eyebrow labels and
-focus indicators. It must never become a page/section background, be applied to
-every heading/icon/card/border/button, replace Apple's neutral backgrounds,
-or form large colored gradients/blocks. All other elements follow the
-Apple-inspired neutral palette (white `#FFFFFF`, light gray `#F5F5F7`,
-near-black `#1D1D1F`, muted gray `#6E6E73`, borders `#D2D2D7`).
+Use the [Apple website](https://www.apple.com/) as inspiration for design
+principles, not as a template. Create an original Hulegeb identity appropriate
+for an Ethiopian multi-vendor marketplace; do not copy Apple's branding, logos,
+content, assets, or exact layouts.
 
+Apply these principles to current and future frontend work:
 
-- Preserve server rendering where possible and minimize client JavaScript.
-- Maintain keyboard usability, visible focus, semantic landmarks, and contrast.
-- Verify each milestone (lint, typecheck, build, and visual checks) before proceeding.
-- Do not introduce future-milestone features (auth, API integration, localization,
-  cart, checkout, etc.) unless explicitly in scope.
+- Keep layouts clean, simple, and intuitive, with clear navigation and hierarchy.
+- Use confident, readable typography, balanced spacing, and generous whitespace.
+- Present marketplace products attractively with high-quality imagery when
+  available.
+- Keep responsive behavior and visual consistency across mobile, tablet, and
+  desktop.
+- Use subtle, purposeful interaction feedback; avoid excess animation and
+  decorative effects that do not improve usability.
+- Prioritize accessibility, keyboard use, contrast, and readability.
+- Build a consistent system of colors and interaction states around Hulegeb's
+  primary brand color `#7752F7` and complementary neutral colors.
+- Before implementing a page, check that it is simple, attractive, intuitive,
+  accessible, usable, and consistent with Hulegeb's design identity.
+
+Keep server rendering where practical, retain accessible keyboard and focus
+behavior, and avoid implementing roadmap features outside their planned milestone.

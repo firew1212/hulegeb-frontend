@@ -29,6 +29,12 @@ export default function ProductDetailClient({
   const title = locale === "am" ? product.titleAm : product.titleEn;
   const description = locale === "am" ? product.descriptionAm : product.descriptionEn;
   const categoryName = locale === "am" ? product.category.nameAm : product.category.nameEn;
+  const condition =
+    product.condition === "NEW"
+      ? dict.catalog.conditionNew
+      : product.condition === "USED"
+        ? dict.catalog.conditionUsed
+        : dict.catalog.conditionRefurbished;
 
   function galleryAlt(image: Product["images"][number]) {
     const alt = locale === "am" ? image.altTextAm : image.altTextEn;
@@ -133,7 +139,7 @@ export default function ProductDetailClient({
         ) : null}
 
         <div className="text-xs text-muted-foreground">
-          {dict.product.condition}: {product.condition.toLowerCase()}
+          {dict.product.condition}: {condition}
         </div>
       </div>
     </div>

@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { LocaleProvider } from "@/i18n/provider";
+import { AuthProvider } from "@/lib/auth-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { LangSetter } from "@/components/i18n/lang-setter";
 
 type Props = { children: React.ReactNode; params: Promise<{ locale: string }> };
 
@@ -25,9 +27,12 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <LocaleProvider locale={locale} dictionary={dict}>
-      <Header locale={locale} />
-      <div className="flex-1">{children}</div>
-      <Footer locale={locale} />
+      <LangSetter locale={locale} />
+      <AuthProvider>
+        <Header />
+        <div className="flex-1">{children}</div>
+        <Footer locale={locale} />
+      </AuthProvider>
     </LocaleProvider>
   );
 }
