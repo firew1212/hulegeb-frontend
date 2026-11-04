@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { getDictionary } from "@/i18n/dictionaries";
 import { isLocale } from "@/i18n/config";
 import type { Locale } from "@/i18n/config";
@@ -8,8 +9,11 @@ import type { Locale } from "@/i18n/config";
 export const dynamic = "force-dynamic";
 
 export default async function NotFound() {
-  const cookieStore = await cookies();
-  const raw = cookieStore.get("locale")?.value ?? "en";
+  const [requestHeaders, cookieStore] = await Promise.all([headers(), cookies()]);
+  const raw =
+    requestHeaders.get("x-hulegeb-locale") ??
+    cookieStore.get("locale")?.value ??
+    "en";
   const locale: Locale = isLocale(raw) ? raw : "en";
   const dict = getDictionary(locale);
   return (

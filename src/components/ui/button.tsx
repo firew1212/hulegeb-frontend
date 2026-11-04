@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "accent";
 type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -13,9 +13,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:opacity-90 active:opacity-80",
+    "bg-primary text-primary-foreground hover:bg-brand-hover active:bg-brand-active",
+  accent:
+    "bg-brand text-primary-foreground hover:bg-brand-hover active:bg-brand-active",
   secondary:
-    "bg-muted text-foreground hover:bg-border/60 active:bg-border",
+    "border border-control-border bg-surface text-foreground hover:bg-muted active:bg-border/60",
   ghost: "bg-transparent text-foreground hover:bg-muted active:bg-border/60",
 };
 
@@ -26,7 +28,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const baseClasses =
-  "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex min-w-0 items-center justify-center gap-2 rounded-full font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none";
 
 export function Button({
   variant = "primary",

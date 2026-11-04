@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 export const instant = false;
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
-import { getProduct } from "@/lib/api";
+import { getProduct } from "@/lib/api/catalog";
 import ProductDetailClient from "./product-detail-client";
 import { isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";

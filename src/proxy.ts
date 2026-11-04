@@ -15,7 +15,7 @@ function preferredLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const hasLocale = locales.some(
@@ -24,7 +24,11 @@ export function middleware(request: NextRequest) {
 
   if (hasLocale) {
     const locale = pathname.split("/")[1];
-    const response = NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-hulegeb-locale", locale);
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
     response.cookies.set("locale", locale, { path: "/" });
     return response;
   }

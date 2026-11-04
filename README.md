@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hulegeb Marketplace frontend
 
-## Getting Started
+The frontend is a bilingual English/Amharic multi-vendor marketplace built with
+Next.js App Router, React, TypeScript, and Tailwind CSS v4. Existing authentication,
+catalog, buyer dashboard, and order functionality should be preserved during
+frontend changes.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Install dependencies and configure the backend URL:
+
+```powershell
+pnpm install
+Copy-Item .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set `NEXT_PUBLIC_API_BASE_URL` in `.env.local` to the backend API URL, then run:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The development server is available at [http://localhost:4000](http://localhost:4000).
+The backend defaults to port 3000; its `FRONTEND_URL` and CORS allowlist should
+include `http://localhost:4000` for local browser authentication and API requests.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+- `pnpm lint` — run ESLint.
+- `pnpm exec tsc --noEmit` — type-check the project.
+- `pnpm build` — create a production build.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [`src/README.md`](./src/README.md) for the source organization, API boundaries,
+localization structure, and design-token notes.
