@@ -33,31 +33,36 @@ API failures should use the localized messages in `i18n/errors.ts`.
 
 Semantic style tokens are defined in `app/globals.css` using CSS custom properties
 and Tailwind CSS v4 `@theme`. Hulegeb's official brand color is `#7752F7`, exposed
-as the `brand` token. Existing interface colors are intentionally preserved in
-this architecture milestone; applying the complete design system is deferred.
+as the `brand` token. Treat these shared tokens, semantic colors, container width,
+and section spacing as the source of truth; extend them only when a reusable
+design need cannot be met with the existing foundation.
 
 ## Permanent design guidelines
 
-Use the [Apple website](https://www.apple.com/) as inspiration for design
-principles, not as a template. Create an original Hulegeb identity appropriate
-for an Ethiopian multi-vendor marketplace; do not copy Apple's branding, logos,
-content, assets, or exact layouts.
+Use the ASOS Men's shopping experience as inspiration for clear product
+discovery, image-led merchandising, and simple navigation, not as a template.
+Create an original Hulegeb identity appropriate for an Ethiopian multi-vendor
+marketplace; do not copy another brand's identity, content, assets, or exact
+layouts.
 
 Apply these principles to current and future frontend work:
 
-- Keep layouts clean, simple, and intuitive, with clear navigation and hierarchy.
-- Use confident, readable typography, balanced spacing, and generous whitespace.
-- Present marketplace products attractively with high-quality imagery when
-  available.
-- Keep responsive behavior and visual consistency across mobile, tablet, and
-  desktop.
-- Use subtle, purposeful interaction feedback; avoid excess animation and
-  decorative effects that do not improve usability.
-- Prioritize accessibility, keyboard use, contrast, and readability.
-- Build a consistent system of colors and interaction states around Hulegeb's
-  primary brand color `#7752F7` and complementary neutral colors.
-- Before implementing a page, check that it is simple, attractive, intuitive,
-  accessible, usable, and consistent with Hulegeb's design identity.
+- Favor simple, attractive layouts with clear hierarchy, intuitive navigation,
+  readable typography, consistent spacing, and generous whitespace.
+- Center product discovery around real marketplace data and its available
+  imagery; never invent listings, categories, discounts, or popularity claims.
+- Use the `#7752F7` brand token with complementary neutral surfaces and
+  intentional interaction states. Keep text readable and controls clearly
+  distinguishable.
+- Design mobile-first and verify that content, controls, and navigation remain
+  usable across phone, tablet, and desktop widths.
+- Make interfaces accessible by default: semantic landmarks and headings,
+  keyboard-operable controls, visible focus, meaningful labels, adequate
+  contrast, and localized English and Amharic copy.
+- Use motion only to clarify interaction or state changes. Keep it subtle and
+  smooth, and honor `prefers-reduced-motion`.
+- Preserve loading, error, and empty states, existing API contracts, and the
+  established application architecture when improving a page.
 
 Keep server rendering where practical, retain accessible keyboard and focus
 behavior, and avoid implementing roadmap features outside their planned milestone.

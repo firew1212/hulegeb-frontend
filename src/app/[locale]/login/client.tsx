@@ -11,7 +11,7 @@ import { getDashboardPath } from "@/lib/dashboard";
 import { AuthShell, FieldError, inputClass } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+export default function LoginPage({ returnTo }: { returnTo?: string }) {
   const dict = useDictionary();
   const locale = useLocale();
   const router = useRouter();
@@ -41,7 +41,11 @@ export default function LoginPage() {
         });
         if (result.user) setAuthenticatedUser(result.user);
         else await refreshSession();
-        router.push(`/${locale}${getDashboardPath(result.user) ?? ""}`);
+        const destination =
+          returnTo && (!result.user || result.user.roles.includes("BUYER"))
+            ? returnTo
+            : `/${locale}${getDashboardPath(result.user) ?? ""}`;
+        router.push(destination);
       }
     } catch (err) {
       setError(getLocalizedApiErrorMessage(err, dict.apiErrors, a.error));
