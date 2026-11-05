@@ -34,14 +34,14 @@ export function ProductCard({ product, className, locale: localeProp }: ProductC
         href={`/${locale}/products/${product.id}`}
         className="flex flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted/70">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={image.imageUrl}
               alt={alt ?? ""}
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02] motion-reduce:transform-none motion-reduce:transition-none"
+              className="h-full w-full object-contain p-3 transition-transform duration-200 ease-out group-hover:scale-[1.02] motion-reduce:transform-none motion-reduce:transition-none"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">

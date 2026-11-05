@@ -1,12 +1,11 @@
-﻿"use client";
+"use client";
 
 export const instant = false;
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Container } from "@/components/ui/container";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/catalog/product-card";
 import { listCategories, listProducts } from "@/lib/api/catalog";
@@ -15,6 +14,37 @@ import { useDictionary, useLocale } from "@/i18n/provider";
 import { getLocalizedApiErrorMessage } from "@/i18n/errors";
 
 const CONDITIONS = ["NEW", "USED", "REFURBISHED"] as const;
+const SORTS = ["newest", "oldest", "price_asc", "price_desc"] as const;
+const CONTROL_CLASS_NAME =
+  "h-11 w-full rounded-xl border border-control-border bg-surface px-3 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+type Condition = (typeof CONDITIONS)[number];
+type Sort = (typeof SORTS)[number];
+type PriceDraftState = {
+  sourceMinPrice: string | null;
+  sourceMaxPrice: string | null;
+  min: string;
+  max: string;
+  error: string | null;
+};
+
+function isCondition(value: string): value is Condition {
+  return CONDITIONS.some((condition) => condition === value);
+}
+
+function isSort(value: string): value is Sort {
+  return SORTS.some((sort) => sort === value);
+}
+
+function parseNonnegativePrice(value: string | null): number | undefined {
+  if (value === null || value.trim() === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function categoryName(category: Category, locale: string) {
+  return locale === "am" ? category.nameAm : category.nameEn;
+}
 
 function CatalogContent() {
   const router = useRouter();
@@ -24,64 +54,108 @@ function CatalogContent() {
   const locale = useLocale();
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [categoriesRequest, setCategoriesRequest] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productsRequest, setProductsRequest] = useState(0);
 
-  const page = Number(searchParams.get("page") ?? "1") || 1;
+  const rawPage = searchParams.get("page");
+  const parsedPage = rawPage === null ? 1 : Number(rawPage);
+  const page =
+    Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const limit = 12;
   const q = searchParams.get("q") ?? "";
   const categoryId = searchParams.get("categoryId") ?? "";
-  const condition = searchParams.get("condition") ?? "";
-  const sort = searchParams.get("sort") ?? "newest";
-  const minPrice = searchParams.get("minPrice") ?? "";
-  const maxPrice = searchParams.get("maxPrice") ?? "";
+  const subcategoryId = searchParams.get("subcategoryId") ?? "";
+  const rawCondition = searchParams.get("condition") ?? "";
+  const condition = isCondition(rawCondition) ? rawCondition : "";
+  const rawSort = searchParams.get("sort") ?? "";
+  const sort = isSort(rawSort) ? rawSort : "newest";
+  const minPriceParam = searchParams.get("minPrice");
+  const maxPriceParam = searchParams.get("maxPrice");
+  const parsedMinPrice = parseNonnegativePrice(minPriceParam);
+  const parsedMaxPrice = parseNonnegativePrice(maxPriceParam);
+  const validPriceRange =
+    parsedMinPrice === undefined ||
+    parsedMaxPrice === undefined ||
+    parsedMinPrice <= parsedMaxPrice;
+  const appliedMinPrice = validPriceRange ? parsedMinPrice : undefined;
+  const appliedMaxPrice = validPriceRange ? parsedMaxPrice : undefined;
 
-  const [searchInput, setSearchInput] = useState(q);
+  const [searchDraft, setSearchDraft] = useState({ query: q, value: q });
+  const searchInput = searchDraft.query === q ? searchDraft.value : q;
+  const [priceDraftState, setPriceDraftState] = useState<PriceDraftState>({
+    sourceMinPrice: minPriceParam,
+    sourceMaxPrice: maxPriceParam,
+    min: minPriceParam ?? "",
+    max: maxPriceParam ?? "",
+    error: null,
+  });
+  const priceDraftIsCurrent =
+    priceDraftState.sourceMinPrice === minPriceParam &&
+    priceDraftState.sourceMaxPrice === maxPriceParam;
+  const minPriceDraft = priceDraftIsCurrent
+    ? priceDraftState.min
+    : minPriceParam ?? "";
+  const maxPriceDraft = priceDraftIsCurrent
+    ? priceDraftState.max
+    : maxPriceParam ?? "";
+  const priceError = priceDraftIsCurrent ? priceDraftState.error : null;
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setSearchInput(q); }, [q]);
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === "") params.delete(key);
+        else params.set(key, value);
+      });
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (searchInput !== q) updateParams({ q: searchInput || null, page: "1" });
+    const timer = setTimeout(() => {
+      if (searchInput !== q) {
+        updateParams({ q: searchInput || null, page: "1" });
+      }
     }, 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput]);
-
-  function updateParams(updates: Record<string, string | null>) {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v === null || v === "") params.delete(k);
-      else params.set(k, v);
-    });
-    router.replace(`${pathname}?${params.toString()}`);
-  }
+    return () => clearTimeout(timer);
+  }, [searchInput, q, updateParams]);
 
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCategoriesLoading(true);
+    setCategoriesError(null);
     listCategories()
       .then((data) => {
-        if (active) {
-          setCategories(data);
-          setCategoriesError(null);
-        }
+        if (active) setCategories(data);
       })
-      .catch((error: unknown) => {
+      .catch((requestError: unknown) => {
         if (active) {
           setCategoriesError(
-            getLocalizedApiErrorMessage(error, dict.apiErrors, dict.catalog.categoriesError),
+            getLocalizedApiErrorMessage(
+              requestError,
+              dict.apiErrors,
+              dict.catalog.categoriesError,
+            ),
           );
         }
+      })
+      .finally(() => {
+        if (active) setCategoriesLoading(false);
       });
     return () => {
       active = false;
     };
-  }, [dict.apiErrors, dict.catalog.categoriesError]);
+  }, [categoriesRequest, dict.apiErrors, dict.catalog.categoriesError]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,124 +168,507 @@ function CatalogContent() {
         limit,
         q: q || undefined,
         categoryId: categoryId || undefined,
-        condition: (condition as "NEW" | "USED" | "REFURBISHED") || undefined,
-        sort: sort as "newest" | "oldest" | "price_asc" | "price_desc",
-        minPrice: minPrice ? Number(minPrice) : undefined,
-        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        subcategoryId: subcategoryId || undefined,
+        condition: condition || undefined,
+        sort,
+        minPrice: appliedMinPrice,
+        maxPrice: appliedMaxPrice,
       },
       { signal: controller.signal },
     )
-      .then((res) => {
+      .then((response) => {
         if (controller.signal.aborted) return;
-        setProducts(res.data);
-        setTotal(res.total);
-        setTotalPages(res.totalPages);
+        setProducts(response.data);
+        setTotal(response.total);
+        setTotalPages(response.totalPages);
       })
-      .catch((e) => {
+      .catch((requestError: unknown) => {
         if (controller.signal.aborted) return;
-        setError(getLocalizedApiErrorMessage(e, dict.apiErrors, dict.catalog.error));
+        setError(
+          getLocalizedApiErrorMessage(
+            requestError,
+            dict.apiErrors,
+            dict.catalog.error,
+          ),
+        );
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [page, q, categoryId, condition, sort, minPrice, maxPrice, dict.apiErrors, dict.catalog.error]);
+  }, [
+    page,
+    q,
+    categoryId,
+    subcategoryId,
+    condition,
+    sort,
+    appliedMinPrice,
+    appliedMaxPrice,
+    productsRequest,
+    dict.apiErrors,
+    dict.catalog.error,
+  ]);
 
-  const hasFilters = Boolean(q || categoryId || condition || minPrice || maxPrice || sort !== "newest");
+  const rootCategories = categories.filter((category) => !category.parentId);
+  const selectedCategory = rootCategories.find(
+    (category) => category.id === categoryId,
+  );
+  const subcategories = selectedCategory?.children ?? [];
+  const selectedSubcategory = subcategories.find(
+    (category) => category.id === subcategoryId,
+  );
 
-  function clearFilters() { router.replace(pathname); }
-
-  const conditionLabel = (c: string) => {
-    if (c === "NEW") return dict.catalog.conditionNew;
-    if (c === "USED") return dict.catalog.conditionUsed;
-    if (c === "REFURBISHED") return dict.catalog.conditionRefurbished;
-    return c;
+  const conditionLabel = (value: string) => {
+    if (value === "NEW") return dict.catalog.conditionNew;
+    if (value === "USED") return dict.catalog.conditionUsed;
+    if (value === "REFURBISHED") return dict.catalog.conditionRefurbished;
+    return value;
   };
 
-  const sortOptions = [
+  const sortOptions: { value: Sort; label: string }[] = [
     { value: "newest", label: dict.catalog.sortNewest },
     { value: "oldest", label: dict.catalog.sortOldest },
     { value: "price_asc", label: dict.catalog.sortPriceAscending },
     { value: "price_desc", label: dict.catalog.sortPriceDescending },
   ];
 
+  const activeFilters: string[] = [];
+  if (q) activeFilters.push(`${dict.catalog.searchLabel}: ${q}`);
+  if (selectedCategory) {
+    activeFilters.push(
+      `${dict.catalog.categoryLabel}: ${categoryName(selectedCategory, locale)}`,
+    );
+  }
+  if (selectedSubcategory) {
+    activeFilters.push(
+      `${dict.catalog.subcategoryLabel}: ${categoryName(selectedSubcategory, locale)}`,
+    );
+  }
+  if (condition) {
+    activeFilters.push(
+      `${dict.catalog.conditionLabel}: ${conditionLabel(condition)}`,
+    );
+  }
+  if (appliedMinPrice !== undefined || appliedMaxPrice !== undefined) {
+    const min = appliedMinPrice?.toLocaleString(locale) ?? "—";
+    const max = appliedMaxPrice?.toLocaleString(locale) ?? "—";
+    activeFilters.push(
+      `${dict.catalog.minPriceLabel}: ${min} · ${dict.catalog.maxPriceLabel}: ${max}`,
+    );
+  }
+  if (sort !== "newest" && rawSort) {
+    activeFilters.push(
+      `${dict.catalog.sortLabel}: ${sortOptions.find((option) => option.value === sort)?.label ?? ""}`,
+    );
+  }
+
+  const hasFilters = Boolean(
+    q ||
+      categoryId ||
+      subcategoryId ||
+      rawCondition ||
+      minPriceParam ||
+      maxPriceParam ||
+      (rawSort && rawSort !== "newest"),
+  );
+
+  function clearFilters() {
+    setSearchDraft({ query: q, value: "" });
+    setPriceDraftState({
+      sourceMinPrice: minPriceParam,
+      sourceMaxPrice: maxPriceParam,
+      min: "",
+      max: "",
+      error: null,
+    });
+    router.replace(pathname);
+  }
+
+  function updatePriceDraft(updates: Partial<Pick<PriceDraftState, "min" | "max">>) {
+    setPriceDraftState({
+      sourceMinPrice: minPriceParam,
+      sourceMaxPrice: maxPriceParam,
+      min: minPriceDraft,
+      max: maxPriceDraft,
+      error: null,
+      ...updates,
+    });
+  }
+
+  function applyPriceFilters() {
+    const min = parseNonnegativePrice(minPriceDraft);
+    const max = parseNonnegativePrice(maxPriceDraft);
+    const hasInvalidInput =
+      (minPriceDraft.trim() !== "" && min === undefined) ||
+      (maxPriceDraft.trim() !== "" && max === undefined);
+    if (hasInvalidInput || (min !== undefined && max !== undefined && min > max)) {
+      setPriceDraftState({
+        sourceMinPrice: minPriceParam,
+        sourceMaxPrice: maxPriceParam,
+        min: minPriceDraft,
+        max: maxPriceDraft,
+        error: dict.catalog.priceValidation,
+      });
+      return;
+    }
+
+    setPriceDraftState({
+      sourceMinPrice: minPriceParam,
+      sourceMaxPrice: maxPriceParam,
+      min: minPriceDraft,
+      max: maxPriceDraft,
+      error: null,
+    });
+    updateParams({
+      minPrice: min === undefined ? null : String(min),
+      maxPrice: max === undefined ? null : String(max),
+      page: "1",
+    });
+  }
+
+  function resetPriceFilters() {
+    setPriceDraftState({
+      sourceMinPrice: minPriceParam,
+      sourceMaxPrice: maxPriceParam,
+      min: "",
+      max: "",
+      error: null,
+    });
+    updateParams({ minPrice: null, maxPrice: null, page: "1" });
+  }
+
+  function retryCategories() {
+    setCategoriesError(null);
+    setCategoriesLoading(true);
+    setCategoriesRequest((request) => request + 1);
+  }
+
+  function retryProducts() {
+    setError(null);
+    setLoading(true);
+    setProductsRequest((request) => request + 1);
+  }
+
   return (
-    <main>
+    <main aria-busy={loading}>
       <section className="section">
         <Container>
-          <SectionHeading eyebrow={dict.catalog.eyebrow} title={dict.catalog.title} description={dict.catalog.description} />
-          {categoriesError ? <p className="mt-4 text-sm text-danger" role="alert">{categoriesError}</p> : null}
-          <div className="mt-6 rounded-2xl border border-border bg-background p-4 md:p-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <header className="max-w-2xl">
+            <p className="text-sm font-semibold text-brand">
+              {dict.catalog.eyebrow}
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
+              {dict.catalog.title}
+            </h1>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:mt-4">
+              {dict.catalog.description}
+            </p>
+          </header>
+
+          {categoriesError ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4">
+              <p className="text-sm text-danger" role="alert">
+                {categoriesError}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={categoriesLoading}
+                onClick={retryCategories}
+              >
+                {dict.catalog.retry}
+              </Button>
+            </div>
+          ) : null}
+
+          <fieldset className="mt-6 rounded-2xl border border-border bg-background p-4 md:p-6">
+            <legend className="px-2 text-sm font-semibold text-foreground">
+              {dict.catalog.filters}
+            </legend>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-foreground">{dict.catalog.searchLabel}</span>
-                <input type="search" value={searchInput} placeholder={dict.catalog.searchPlaceholder} onChange={(e) => setSearchInput(e.target.value)} className="h-11 rounded-xl border border-control-border bg-surface px-3 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                <span className="font-medium text-foreground">
+                  {dict.catalog.searchLabel}
+                </span>
+                <input
+                  type="search"
+                  value={searchInput}
+                  placeholder={dict.catalog.searchPlaceholder}
+                  onChange={(event) =>
+                    setSearchDraft({ query: q, value: event.target.value })
+                  }
+                  className={CONTROL_CLASS_NAME}
+                />
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-foreground">{dict.catalog.categoryLabel}</span>
-                <select value={categoryId} onChange={(e) => updateParams({ categoryId: e.target.value || null, page: "1" })} className="h-11 rounded-xl border border-control-border bg-surface px-3 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <span className="font-medium text-foreground">
+                  {dict.catalog.categoryLabel}
+                </span>
+                <select
+                  value={categoryId}
+                  aria-busy={categoriesLoading}
+                  onChange={(event) =>
+                    updateParams({
+                      categoryId: event.target.value || null,
+                      subcategoryId: null,
+                      page: "1",
+                    })
+                  }
+                  className={CONTROL_CLASS_NAME}
+                >
                   <option value="">{dict.catalog.allCategories}</option>
-                  {categories.map((c) => (<option key={c.id} value={c.id}>{locale === "am" ? c.nameAm : c.nameEn}</option>))}
+                  {rootCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {categoryName(category, locale)}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-foreground">{dict.catalog.conditionLabel}</span>
-                <select value={condition} onChange={(e) => updateParams({ condition: e.target.value || null, page: "1" })} className="h-11 rounded-xl border border-control-border bg-surface px-3 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <span className="font-medium text-foreground">
+                  {dict.catalog.subcategoryLabel}
+                </span>
+                <select
+                  value={subcategoryId}
+                  disabled={!selectedCategory || subcategories.length === 0}
+                  onChange={(event) =>
+                    updateParams({
+                      subcategoryId: event.target.value || null,
+                      page: "1",
+                    })
+                  }
+                  className={CONTROL_CLASS_NAME}
+                >
+                  <option value="">{dict.catalog.allSubcategories}</option>
+                  {subcategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {categoryName(category, locale)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="font-medium text-foreground">
+                  {dict.catalog.conditionLabel}
+                </span>
+                <select
+                  value={condition}
+                  onChange={(event) =>
+                    updateParams({
+                      condition: event.target.value || null,
+                      page: "1",
+                    })
+                  }
+                  className={CONTROL_CLASS_NAME}
+                >
                   <option value="">{dict.catalog.allConditions}</option>
-                  {CONDITIONS.map((c) => (<option key={c} value={c}>{conditionLabel(c)}</option>))}
+                  {CONDITIONS.map((value) => (
+                    <option key={value} value={value}>
+                      {conditionLabel(value)}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-foreground">{dict.catalog.sortLabel}</span>
-                <select value={sort} onChange={(e) => updateParams({ sort: e.target.value, page: "1" })} className="h-11 rounded-xl border border-control-border bg-surface px-3 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  {sortOptions.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
+                <span className="font-medium text-foreground">
+                  {dict.catalog.sortLabel}
+                </span>
+                <select
+                  value={sort}
+                  onChange={(event) =>
+                    updateParams({ sort: event.target.value, page: "1" })
+                  }
+                  className={CONTROL_CLASS_NAME}
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
+
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-foreground">{dict.catalog.minPriceLabel}</span>
-                <input type="number" value={minPrice} onChange={(e) => updateParams({ minPrice: e.target.value || null, page: "1" })} className="h-11 rounded-xl border border-control-border bg-surface px-3 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                <span className="font-medium text-foreground">
+                  {dict.catalog.minPriceLabel}
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  value={minPriceDraft}
+                  aria-invalid={Boolean(priceError)}
+                  aria-describedby={priceError ? "price-filter-error" : undefined}
+                  onChange={(event) =>
+                    updatePriceDraft({ min: event.target.value })
+                  }
+                  className={CONTROL_CLASS_NAME}
+                />
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium text-foreground">{dict.catalog.maxPriceLabel}</span>
-                <input type="number" value={maxPrice} onChange={(e) => updateParams({ maxPrice: e.target.value || null, page: "1" })} className="h-11 rounded-xl border border-control-border bg-surface px-3 text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                <span className="font-medium text-foreground">
+                  {dict.catalog.maxPriceLabel}
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  value={maxPriceDraft}
+                  aria-invalid={Boolean(priceError)}
+                  aria-describedby={priceError ? "price-filter-error" : undefined}
+                  onChange={(event) =>
+                    updatePriceDraft({ max: event.target.value })
+                  }
+                  className={CONTROL_CLASS_NAME}
+                />
               </label>
-              <div className="flex items-end">
-                {hasFilters ? (<Button variant="ghost" size="md" onClick={clearFilters}>{dict.catalog.clearFilters}</Button>) : null}
+              <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-1">
+                <Button variant="primary" size="md" onClick={applyPriceFilters}>
+                  {dict.catalog.applyPrices}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={resetPriceFilters}
+                >
+                  {dict.catalog.resetPrices}
+                </Button>
               </div>
             </div>
-          </div>
-          <div className="mt-6 text-sm text-muted-foreground">
+            {priceError ? (
+              <p
+                id="price-filter-error"
+                className="mt-3 text-sm text-danger"
+                role="alert"
+              >
+                {priceError}
+              </p>
+            ) : null}
+            {hasFilters ? (
+              <div className="mt-4">
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  {dict.catalog.clearFilters}
+                </Button>
+              </div>
+            ) : null}
+          </fieldset>
+
+          {activeFilters.length > 0 ? (
+            <section className="mt-4" aria-labelledby="active-filters-heading">
+              <h2
+                id="active-filters-heading"
+                className="mb-2 text-sm font-medium text-foreground"
+              >
+                {dict.catalog.activeFilters}
+              </h2>
+              <ul className="flex flex-wrap gap-2">
+                {activeFilters.map((filter) => (
+                  <li
+                    key={filter}
+                    className="rounded-full border border-brand/20 bg-brand/5 px-3 py-1.5 text-sm text-foreground"
+                  >
+                    {filter}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <p
+            className="mt-6 text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {loading
               ? dict.catalog.loading
               : dict.catalog.resultsCount.replace("{count}", String(total))}
-          </div>
+          </p>
+
           {error ? (
-            <div className="mt-8 rounded-2xl border border-border bg-muted p-8 text-center">
+            <div
+              className="mt-8 rounded-2xl border border-danger/30 bg-danger/5 p-8 text-center"
+              role="alert"
+            >
               <p className="text-sm text-danger">{error}</p>
-              <div className="mt-4"><Button variant="secondary" size="sm" onClick={() => updateParams({})}>{dict.catalog.retry}</Button></div>
+              <div className="mt-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={loading}
+                  onClick={retryProducts}
+                >
+                  {dict.catalog.retry}
+                </Button>
+              </div>
             </div>
           ) : loading ? (
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (<div key={i} className="h-72 animate-pulse rounded-2xl border border-border bg-muted" />))}
+            <div
+              className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+              aria-hidden="true"
+            >
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-72 animate-pulse rounded-2xl border border-border bg-muted motion-reduce:animate-none"
+                />
+              ))}
             </div>
           ) : products.length ? (
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (<ProductCard key={product.id} product={product} locale={locale} />))}
+              {products.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  locale={locale}
+                />
+              ))}
             </div>
           ) : (
             <div className="mt-8 rounded-2xl border border-border bg-muted p-8 text-center">
-              <p className="text-sm text-muted-foreground">{dict.catalog.empty}</p>
-              <div className="mt-4"><Button variant="secondary" size="sm" onClick={clearFilters}>{dict.catalog.clearFilters}</Button></div>
+              <p className="text-sm text-muted-foreground">
+                {dict.catalog.empty}
+              </p>
+              <div className="mt-4">
+                <Button variant="secondary" size="sm" onClick={clearFilters}>
+                  {dict.catalog.clearFilters}
+                </Button>
+              </div>
             </div>
           )}
-          {totalPages > 1 ? (
-            <div className="mt-10 flex items-center justify-center gap-2">
-              <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => updateParams({ page: String(page - 1) })}>{dict.catalog.previous}</Button>
-              <span className="text-sm text-muted-foreground">{dict.catalog.pageOf.replace("{page}", String(page)).replace("{total}", String(totalPages))}</span>
-              <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => updateParams({ page: String(page + 1) })}>{dict.catalog.next}</Button>
-            </div>
+
+          {!loading && !error && totalPages > 1 ? (
+            <nav
+              className="mt-10 flex items-center justify-center gap-2"
+              aria-label={dict.catalog.pagination}
+            >
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => updateParams({ page: String(page - 1) })}
+              >
+                {dict.catalog.previous}
+              </Button>
+              <span className="text-sm text-muted-foreground" aria-live="polite">
+                {dict.catalog.pageOf
+                  .replace("{page}", String(page))
+                  .replace("{total}", String(totalPages))}
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => updateParams({ page: String(page + 1) })}
+              >
+                {dict.catalog.next}
+              </Button>
+            </nav>
           ) : null}
         </Container>
       </section>
@@ -222,7 +679,13 @@ function CatalogContent() {
 export default function CatalogClient() {
   const dict = useDictionary();
   return (
-    <Suspense fallback={<div className="section"><Container>{dict.catalog.loading}</Container></div>}>
+    <Suspense
+      fallback={
+        <div className="section" role="status" aria-live="polite">
+          <Container>{dict.catalog.loading}</Container>
+        </div>
+      }
+    >
       <CatalogContent />
     </Suspense>
   );
