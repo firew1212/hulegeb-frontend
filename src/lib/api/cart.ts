@@ -1,5 +1,6 @@
 import { request } from "@/lib/api";
 import type { Cart } from "@/types/cart";
+import type { BuyerOrder } from "@/types/orders";
 
 export type AddCartItemDto = {
   variantId: string;
@@ -16,6 +17,14 @@ export function getCart(
   return request<Cart>("/cart", {
     auth: true,
     signal: options?.signal,
+  });
+}
+
+export function checkoutCart(idempotencyKey: string): Promise<BuyerOrder> {
+  return request<BuyerOrder>("/cart/checkout", {
+    method: "POST",
+    auth: true,
+    headers: { "Idempotency-Key": idempotencyKey },
   });
 }
 
