@@ -33,6 +33,9 @@ export function Header() {
   const navLinks = [
     { href: `/${locale}`, label: dict.nav.home },
     { href: `/${locale}/catalog`, label: dict.nav.catalog },
+    ...(status === "authenticated" && user?.roles.includes("BUYER")
+      ? [{ href: `/${locale}/cart`, label: dict.cart.title }]
+      : []),
     ...(dashboardPath
       ? [{ href: `/${locale}${dashboardPath}`, label: dict.dashboard.title }]
       : []),
