@@ -58,6 +58,17 @@ export const en = {
     catalogCtaTitle: "Keep exploring the catalog",
     catalogCtaDescription:
       "Search and browse the available products to find what you are looking for.",
+
+    /* New homepage foundations (approved redesign) */
+    categoryStripsEyebrow: "Categories",
+    categoryStripsTitle: "Shop by category",
+    categoryStripsDescription: "Browse products grouped into curated category strips.",
+    productSpotlightEyebrow: "Spotlight",
+    productSpotlightTitle: "Curated around the moment",
+    productSpotlightDescription: "Hand-picked products, elevated and arranged just for you.",
+    featuredCollectionsEyebrow: "Featured collections",
+    featuredCollectionsTitle: "Explore our collections",
+    featuredCollectionsDescription: "Curated groupings of the best local sellers and products.",
   },
   catalog: {
     eyebrow: "Catalog",
