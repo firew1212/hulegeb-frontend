@@ -457,13 +457,20 @@ export default function CartClient() {
                 className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-soft sm:p-6"
                 aria-label={d.subtotal}
               >
-                <div className="flex items-center justify-between gap-4">
-                  <h2 className="text-sm font-medium text-muted-foreground">
-                    {d.subtotal}
-                  </h2>
-                  <p className="text-lg font-semibold text-foreground">
-                    {formatETB(cart.total, locale)}
-                  </p>
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center justify-between gap-4">
+                    <h2 className="text-sm font-medium text-muted-foreground">
+                      {d.subtotal}
+                    </h2>
+                    <p className="text-lg font-semibold text-foreground">
+                      {formatETB(cart.total, locale)}
+                    </p>
+                  </div>
+                  <Link href={`/${locale}/checkout`}>
+                    <Button className="w-full bg-[#7752F7] hover:bg-[#6843e6] sm:w-auto">
+                      {d.checkout}
+                    </Button>
+                  </Link>
                 </div>
               </section>
             </>
