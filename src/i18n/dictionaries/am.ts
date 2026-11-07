@@ -60,6 +60,17 @@ export const am = {
     catalogCtaTitle: "ካታሎጉን ይበልጥ ያስሱ",
     catalogCtaDescription:
       "የሚፈልጉትን ለማግኘት ያሉትን ምርቶች ይፈልጉ እና ያስሱ።",
+
+    /* New homepage foundations (approved redesign) */
+    categoryStripsEyebrow: "ምድቦች",
+    categoryStripsTitle: "በምድብ ይግዙ",
+    categoryStripsDescription: "ምርቶችን በተመረጺ ምድቦች ያስሱ",
+    productSpotlightEyebrow: "አሳሾች",
+    productSpotlightTitle: "በተለመደኛው ውስጥ ያለን የታወቀ ምርቶች",
+    productSpotlightDescription: "የተዘጋጀ ምርቶች፣ በአሳልፍታችን የተለያዩ እና በተዘጋጀ",
+    featuredCollectionsEyebrow: "አሰሳዎች",
+    featuredCollectionsTitle: "ተጣራ አሰሳዎች",
+    featuredCollectionsDescription: "የተዘጋጀ ምርቶች እና ማውሪያዎች ትክክለኛ ምእምሮች",
   },
   catalog: {
     eyebrow: "ካታሎግ",

@@ -12,6 +12,9 @@ import type { Locale } from "@/i18n/config";
 import { listCategories, listProducts } from "@/lib/api/catalog";
 import type { Category, Product, ProductImage } from "@/types/catalog";
 
+import { Reveal } from "@/components/home/reveal";
+import { CategoryCard } from "@/components/home/category-card";
+
 export const instant = false;
 
 type Props = { params: Promise<{ locale: string }> };
@@ -87,9 +90,9 @@ export default async function Home({ params }: Props) {
               src={heroProductImage.imageUrl}
               alt=""
               fetchPriority="high"
-              className="h-full w-full object-cover object-center opacity-55"
+              className="h-full w-full object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/20" />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10" />
           </div>
         ) : (
           <div
@@ -129,53 +132,37 @@ export default async function Home({ params }: Props) {
         </Container>
       </section>
 
-      <section id="categories" className="section">
+                  <section id="categories" className="section">
         <Container>
-          <SectionHeading
-            eyebrow={dict.home.categoriesEyebrow}
-            title={dict.home.categoriesTitle}
-            description={dict.home.categoriesDescription}
-          />
+          <Reveal delay={0}>
+            <SectionHeading
+              eyebrow={dict.home.categoriesEyebrow}
+              title={dict.home.categoriesTitle}
+              description={dict.home.categoriesDescription}
+            />
+          </Reveal>
+
           {categoryTiles.length > 0 ? (
-            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {categoryTiles.map((category) => {
+            <div className="categories-strip">
+              {categoryTiles.map((category, index) => {
                 const title = locale === "am" ? category.nameAm : category.nameEn;
                 const image = getProductImage(findCategoryProduct(category, products));
-
                 return (
-                  <Link
-                    key={category.id}
-                    href={`/${locale}/catalog?categoryId=${category.id}`}
-                    className="group relative isolate flex min-h-48 items-end overflow-hidden rounded-2xl bg-muted shadow-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none sm:min-h-56"
-                  >
-                    {image ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={image.imageUrl}
-                          alt=""
-                          loading="lazy"
-                          className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03] motion-reduce:transform-none motion-reduce:transition-none"
-                        />
-                        <div
-                          aria-hidden="true"
-                          className="absolute inset-0 -z-10 bg-gradient-to-t from-black/75 via-black/10 to-transparent"
-                        />
-                      </>
-                    ) : (
-                      <div
-                        aria-hidden="true"
-                        className="absolute inset-0 -z-10 bg-gradient-to-br from-accent-soft via-muted to-border"
-                      />
-                    )}
-                    <span className="p-4 text-base font-semibold leading-snug text-foreground group-has-[img]:text-white sm:p-5 sm:text-lg">
-                      {title}
-                    </span>
-                  </Link>
+                  <Reveal key={category.id} delay={Math.min(200 + index * 100, 900)}>
+                    <CategoryCard
+                      category={category}
+                      title={title}
+                      image={image}
+                      locale={locale}
+                      eyebrow={dict.home.categoriesEyebrow}
+                      explore={dict.home.exploreCategories}
+                    />
+                  </Reveal>
                 );
               })}
             </div>
           ) : null}
+
           {categoryError ? (
             <p className="mt-6 text-sm text-danger" role="alert">
               {categoryError}

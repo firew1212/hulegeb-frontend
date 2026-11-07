@@ -11,13 +11,10 @@ import { StatusBadge } from "@/components/dashboard/status-badge";
 import { getLocalizedApiErrorMessage } from "@/i18n/errors";
 import { listBuyerOrders } from "@/lib/api/orders";
 import { getOrderStatusLabel, getOrderStatusTone } from "@/lib/dashboard";
+import { formatETB } from "@/lib/money";
 import type { BuyerOrder } from "@/types/orders";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-
-function money(value: string | number): string {
-  return String(value);
-}
 
 export default function BuyerDashboardClient() {
   const dict = useDictionary();
@@ -119,7 +116,7 @@ export default function BuyerDashboardClient() {
                         <div className="flex items-center gap-3">
                           <StatusBadge label={getOrderStatusLabel(order.status, d)} tone={getOrderStatusTone(order.status)} />
                           <p className="text-sm font-semibold text-foreground">
-                            {money(order.total)} {order.currency}
+                            {formatETB(order.total, locale)} {order.currency}
                           </p>
                         </div>
                       </div>
