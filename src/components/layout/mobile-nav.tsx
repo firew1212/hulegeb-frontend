@@ -24,6 +24,9 @@ export function MobileNav({ locale }: { locale?: string }) {
   const links = [
     { href: `/${loc}`, label: dict.nav.home },
     { href: `/${loc}/catalog`, label: dict.nav.catalog },
+    ...(status === "authenticated" && user?.roles.includes("BUYER")
+      ? [{ href: `/${loc}/cart`, label: dict.cart.title }]
+      : []),
     ...(dashboardPath
       ? [{ href: `/${loc}${dashboardPath}`, label: dict.dashboard.title }]
       : []),

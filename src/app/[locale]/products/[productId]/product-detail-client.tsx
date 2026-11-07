@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getLocalizedApiErrorMessage } from "@/i18n/errors";
 import { useAuth } from "@/lib/auth-context";
-import { isApiError, request } from "@/lib/api";
+import { isApiError } from "@/lib/api";
+import { addCartItem } from "@/lib/api/cart";
 import { formatETB, priceRange } from "@/lib/money";
 import type { Product, ProductVariant } from "@/types/catalog";
 import { useDictionary, useLocale } from "@/i18n/provider";
@@ -99,10 +100,7 @@ export default function ProductDetailClient({
     setIsAddingToCart(true);
     setCartFeedback(null);
     try {
-      await request<unknown>("/cart/items", {
-        method: "POST",
-        body: { variantId: selectedVariant.id, quantity },
-      });
+      await addCartItem(selectedVariant.id, quantity);
       setCartFeedback({ type: "success", message: dict.product.addedToCart });
     } catch (error) {
       if (isApiError(error) && error.status === 401) {
