@@ -7,7 +7,10 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { useDictionary } from "@/i18n/provider";
-import type { DashboardNavItem } from "./dashboard-sidebar";
+import {
+  isDashboardNavItemActive,
+  type DashboardNavItem,
+} from "./dashboard-sidebar";
 
 export interface DashboardMobileNavProps {
   items: DashboardNavItem[];
@@ -43,10 +46,6 @@ export function DashboardMobileNav({ items, title, openLabel, closeLabel, classN
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
-
-  function isActive(href: string) {
-    return pathname === href || pathname.startsWith(href + "/");
-  }
 
   return (
     <div className={cn("lg:hidden", className)}>
@@ -89,20 +88,35 @@ export function DashboardMobileNav({ items, title, openLabel, closeLabel, classN
             <nav aria-label={dict.dashboard.navigation} className="flex-1 overflow-y-auto px-3 py-4">
               <ul className="flex flex-col gap-1">
                 {items.map((item) => {
-                  const active = isActive(item.href);
+                  const active = item.href
+                    ? isDashboardNavItemActive(pathname, item.href, items)
+                    : false;
+                  const content = (
+                    <>
+                      {item.icon ? <span className="flex h-5 w-5 items-center justify-center" aria-hidden="true">{item.icon}</span> : null}
+                      <span className="truncate">{item.label}</span>
+                      {item.marker ? <span className="ml-auto text-[10px] font-semibold tracking-wide text-muted-foreground/70">{item.marker}</span> : null}
+                    </>
+                  );
                   return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
-                          active ? "bg-accent-soft text-brand" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                        )}
-                      >
-                        {item.icon ? <span className="flex h-5 w-5 items-center justify-center" aria-hidden="true">{item.icon}</span> : null}
-                        <span className="truncate">{item.label}</span>
-                      </Link>
+                    <li key={item.href ?? item.label}>
+                      {item.href ? (
+                        <Link
+                          href={item.href}
+                          onClick={() => setOpen(false)}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+                            active ? "bg-accent-soft text-brand" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          {content}
+                        </Link>
+                      ) : (
+                        <span aria-disabled="true" className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground/60">
+                          {content}
+                        </span>
+                      )}
                     </li>
                   );
                 })}

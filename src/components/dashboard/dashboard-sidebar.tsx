@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 import { useDictionary } from "@/i18n/provider";
 
 export interface DashboardNavItem {
-  href: string;
+  href?: string;
   label: string;
   icon?: React.ReactNode;
+  marker?: string;
 }
 
 export interface DashboardSidebarProps {
@@ -19,9 +20,21 @@ export interface DashboardSidebarProps {
   className?: string;
 }
 
-function isActive(pathname: string, href: string) {
-  if (pathname === href) return true;
-  return pathname.startsWith(href + "/");
+export function isDashboardNavItemActive(
+  pathname: string,
+  href: string,
+  items: DashboardNavItem[],
+) {
+  const matchesPath = pathname === href || pathname.startsWith(`${href}/`);
+  if (!matchesPath) return false;
+
+  return !items.some(
+    (item) =>
+      item.href &&
+      item.href.length > href.length &&
+      item.href.startsWith(`${href}/`) &&
+      (pathname === item.href || pathname.startsWith(`${item.href}/`)),
+  );
 }
 
 export function DashboardSidebar({ items, title, footer, className }: DashboardSidebarProps) {
@@ -42,29 +55,50 @@ export function DashboardSidebar({ items, title, footer, className }: DashboardS
       <nav aria-label={dict.dashboard.navigation} className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="flex flex-col gap-1">
           {items.map((item) => {
-            const active = isActive(pathname, item.href);
+            const active = item.href
+              ? isDashboardNavItemActive(pathname, item.href, items)
+              : false;
+            const content = (
+              <>
+                {item.icon ? (
+                  <span className="flex h-5 w-5 items-center justify-center" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                ) : null}
+                <span className="truncate">{item.label}</span>
+                {item.marker ? (
+                  <span className="ml-auto text-[10px] font-semibold tracking-wide text-muted-foreground/70">
+                    {item.marker}
+                  </span>
+                ) : null}
+                {active ? (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand" aria-hidden="true" />
+                ) : null}
+              </>
+            );
             return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface motion-reduce:transition-none",
-                    active
-                      ? "bg-accent-soft text-brand"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  {item.icon ? (
-                    <span className="flex h-5 w-5 items-center justify-center" aria-hidden="true">
-                      {item.icon}
-                    </span>
-                  ) : null}
-                  <span className="truncate">{item.label}</span>
-                  {active ? (
-                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand" aria-hidden="true" />
-                  ) : null}
-                </Link>
+              <li key={item.href ?? item.label}>
+                {item.href ? (
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface motion-reduce:transition-none",
+                      active
+                        ? "bg-accent-soft text-brand"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <span
+                    aria-disabled="true"
+                    className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground/60"
+                  >
+                    {content}
+                  </span>
+                )}
               </li>
             );
           })}
