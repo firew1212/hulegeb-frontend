@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/dashboard/empty-state";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { SellerWorkspace } from "@/components/dashboard/seller-workspace";
 import { useDictionary, useLocale } from "@/i18n/provider";
 import { getLocalizedApiErrorMessage } from "@/i18n/errors";
 import {
@@ -19,15 +20,23 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import type { BuyerNotification } from "@/types/notifications";
 
 const LIMIT = 20;
-const ORDER_ID_RE =
+const RESOURCE_ID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function getNotificationMessage(type: string, d: Dictionary["dashboard"]) {
+function getNotificationMessage(
+  type: string,
+  d: Dictionary["dashboard"],
+  sellerProducts: Dictionary["sellerProducts"],
+) {
   switch (type) {
     case "ORDER_CANCELLED":
       return d.orderCancelledNotification;
     case "ORDER_COMPLETED":
       return d.orderCompletedNotification;
+    case "PRODUCT_APPROVED":
+      return sellerProducts.productApprovedNotification;
+    case "PRODUCT_REJECTED":
+      return sellerProducts.productRejectedNotification;
     default:
       return d.genericNotification;
   }
@@ -39,10 +48,15 @@ function formatNotificationDate(createdAt: string, locale: string) {
   return date.toLocaleString(locale === "am" ? "am-ET" : "en-ET");
 }
 
-export default function BuyerNotificationsClient() {
+export default function NotificationsClient({
+  audience = "buyer",
+}: {
+  audience?: "buyer" | "seller";
+}) {
   const dict = useDictionary();
   const locale = useLocale();
   const d = dict.dashboard;
+  const isSeller = audience === "seller";
 
   const [notifications, setNotifications] = useState<BuyerNotification[]>([]);
   const [page, setPage] = useState(1);
@@ -130,13 +144,15 @@ export default function BuyerNotificationsClient() {
   const hasPreviousPage = page > 1;
   const hasNextPage = notifications.length === LIMIT;
 
-  return (
-    <ProtectedRoute roles={["BUYER"]}>
-      <DashboardShell>
-        <Container className="py-8 md:py-10">
+  const notificationsContent = (
+    <>
           <PageHeader
             title={d.notificationsTitle}
-            description={d.notificationsDescription}
+            description={
+              isSeller
+                ? d.sellerNotificationsDescription
+                : d.notificationsDescription
+            }
             actions={
               <>
                 <Button
@@ -146,7 +162,9 @@ export default function BuyerNotificationsClient() {
                 >
                   {d.refreshNotifications}
                 </Button>
-                <Link href={`/${locale}/dashboard/buyer`}>
+                <Link
+                  href={`/${locale}/dashboard/${isSeller ? "seller" : "buyer"}`}
+                >
                   <Button variant="ghost">{d.backToOverview}</Button>
                 </Link>
               </>
@@ -183,10 +201,21 @@ export default function BuyerNotificationsClient() {
               {notifications.map((notification) => {
                 const unread = notification.readAt === null;
                 const orderId =
+                  !isSeller &&
                   (notification.type === "ORDER_CANCELLED" ||
                     notification.type === "ORDER_COMPLETED") &&
                   notification.resourceId &&
-                  ORDER_ID_RE.test(notification.resourceId)
+                  RESOURCE_ID_RE.test(notification.resourceId)
+                    ? notification.resourceId
+                    : null;
+                const isProductNotification =
+                  notification.type === "PRODUCT_APPROVED" ||
+                  notification.type === "PRODUCT_REJECTED";
+                const productId =
+                  isSeller &&
+                  isProductNotification &&
+                  notification.resourceId &&
+                  RESOURCE_ID_RE.test(notification.resourceId)
                     ? notification.resourceId
                     : null;
                 const marking = pendingIds.has(notification.id);
@@ -214,7 +243,11 @@ export default function BuyerNotificationsClient() {
                           </span>
                         </div>
                         <p className="mt-2 text-sm font-medium text-foreground">
-                          {getNotificationMessage(notification.type, d)}
+                          {getNotificationMessage(
+                            notification.type,
+                            d,
+                            dict.sellerProducts,
+                          )}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {formatNotificationDate(notification.createdAt, locale)}
@@ -226,6 +259,18 @@ export default function BuyerNotificationsClient() {
                           >
                             {d.viewNotificationOrder}
                           </Link>
+                        ) : null}
+                        {productId ? (
+                          <Link
+                            href={`/${locale}/dashboard/seller/products/${encodeURIComponent(productId)}`}
+                            className="mt-3 inline-flex text-sm font-medium text-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {dict.sellerProducts.viewNotificationProduct}
+                          </Link>
+                        ) : isSeller && isProductNotification ? (
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            {dict.sellerProducts.productNotificationUnavailable}
+                          </p>
                         ) : null}
                       </div>
 
@@ -277,8 +322,20 @@ export default function BuyerNotificationsClient() {
               {d.nextPage}
             </Button>
           </div>
-        </Container>
-      </DashboardShell>
+    </>
+  );
+
+  return (
+    <ProtectedRoute roles={[isSeller ? "SELLER" : "BUYER"]}>
+      {isSeller ? (
+        <SellerWorkspace title={d.notificationsTitle}>
+          {notificationsContent}
+        </SellerWorkspace>
+      ) : (
+        <DashboardShell>
+          <Container className="py-8 md:py-10">{notificationsContent}</Container>
+        </DashboardShell>
+      )}
     </ProtectedRoute>
   );
 }

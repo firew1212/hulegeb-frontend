@@ -49,6 +49,29 @@ export type Product = {
   images: ProductImage[];
 };
 
+export type SellerProductStatus =
+  | "DRAFT"
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "REJECTED"
+  | "UNAVAILABLE"
+  | "REMOVED";
+
+export type SellerProductVariant = ProductVariant & {
+  sku: string;
+  isActive: boolean;
+};
+
+export type SellerProductImage = ProductImage & {
+  id: string;
+};
+
+export type SellerProduct = Omit<Product, "variants" | "images"> & {
+  status: SellerProductStatus;
+  variants: SellerProductVariant[];
+  images: SellerProductImage[];
+};
+
 export type ProductListResponse = {
   data: Product[];
   page: number;
