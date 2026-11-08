@@ -14,6 +14,7 @@ const localizedPaths = new Set([
   "/checkout",
   "/dashboard/admin",
   "/dashboard/buyer",
+  "/dashboard/buyer/notifications",
   "/dashboard/buyer/orders",
   "/dashboard/seller",
   "/forgot-password",

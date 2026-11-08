@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useDictionary, useLocale } from "@/i18n/provider";
 import { ProtectedRoute } from "@/components/auth/protected-route";
@@ -26,23 +26,40 @@ export default function BuyerOrdersClient() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadController = useRef<AbortController | null>(null);
 
   const load = useCallback(async (p: number) => {
+    loadController.current?.abort();
+    const controller = new AbortController();
+    loadController.current = controller;
     setLoading(true);
     setError(null);
     try {
-      const data = await listBuyerOrders(p, LIMIT);
+      const data = await listBuyerOrders(p, LIMIT, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      if (data.length === 0 && p > 1) {
+        setPage((current) => (current === p ? p - 1 : current));
+        return;
+      }
       setOrders(data);
     } catch (err) {
-      setError(getLocalizedApiErrorMessage(err, dict.apiErrors, d.loadError));
+      if (!controller.signal.aborted) {
+        setError(getLocalizedApiErrorMessage(err, dict.apiErrors, d.loadError));
+      }
     } finally {
-      setLoading(false);
+      if (loadController.current === controller) {
+        loadController.current = null;
+        setLoading(false);
+      }
     }
   }, [d.loadError, dict.apiErrors]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load(page);
+    return () => loadController.current?.abort();
   }, [page, load]);
 
   const hasPrev = page > 1;
@@ -72,55 +89,62 @@ export default function BuyerOrdersClient() {
                 {d.retry}
               </Button>
             </div>
-          ) : orders.length === 0 ? (
-            <div className="mt-6">
-              <EmptyState
-                title={d.noOrders}
-                action={
-                  <Link href={`/${locale}/catalog`}>
-                    <Button>{d.browseCatalog}</Button>
-                  </Link>
-                }
-              />
-            </div>
           ) : (
             <>
-              <ul className="mt-6 space-y-3">
-                {orders.map((order) => (
-                  <li key={order.id}>
-                    <Link
-                      href={`/${locale}/dashboard/buyer/orders/${order.id}`}
-                      className="block rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {d.orderRef} {order.id.slice(0, 8)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {d.orderDate}: {new Date(order.createdAt).toLocaleDateString(locale === "am" ? "am-ET" : "en-ET")} · {order.items.length} {d.items}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {d.paymentOptionLabel}: {getPaymentOptionLabel(order.paymentOption, d)}
-                          </p>
+              {orders.length === 0 ? (
+                <div className="mt-6">
+                  <EmptyState
+                    title={d.noOrders}
+                    action={
+                      <Link href={`/${locale}/catalog`}>
+                        <Button>{d.browseCatalog}</Button>
+                      </Link>
+                    }
+                  />
+                </div>
+              ) : (
+                <ul className="mt-6 space-y-3">
+                  {orders.map((order) => (
+                    <li key={order.id}>
+                      <Link
+                        href={`/${locale}/dashboard/buyer/orders/${order.id}`}
+                        className="block rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                      >
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {d.orderRef} {order.id.slice(0, 8)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {d.orderDate}: {new Date(order.createdAt).toLocaleDateString(locale === "am" ? "am-ET" : "en-ET")} · {order.items.length} {d.items}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {d.paymentOptionLabel}: {getPaymentOptionLabel(order.paymentOption, d)}
+                            </p>
+                            {order.paymentAmount !== null && (
+                              <p className="text-xs text-muted-foreground">
+                                {d.amountDue}: {formatETB(order.paymentAmount, locale)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <StatusBadge label={getOrderStatusLabel(order.status, d)} tone={getOrderStatusTone(order.status)} />
+                            <p className="text-sm font-semibold text-foreground">
+                              {formatETB(order.total, locale)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <StatusBadge label={getOrderStatusLabel(order.status, d)} tone={getOrderStatusTone(order.status)} />
-                          <p className="text-sm font-semibold text-foreground">
-                            {formatETB(order.total, locale)} {order.currency}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="mt-6 flex items-center justify-center gap-3">
-                <Button variant="ghost" disabled={!hasPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <Button variant="ghost" disabled={!hasPrev || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                   {d.previousPage}
                 </Button>
                 <span className="text-sm text-muted-foreground">{d.page} {page}</span>
-                <Button variant="ghost" disabled={!hasNext} onClick={() => setPage((p) => p + 1)}>
+                <Button variant="ghost" disabled={!hasNext || loading || error !== null} onClick={() => setPage((p) => p + 1)}>
                   {d.nextPage}
                 </Button>
               </div>

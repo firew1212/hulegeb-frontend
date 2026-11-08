@@ -58,11 +58,14 @@ export default function BuyerDashboardClient() {
             </h1>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Link href={`/${locale}/dashboard/buyer/orders`} className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
               <p className="text-sm font-medium text-foreground">{d.quickOrders}</p>
             </Link>
-            <Link href={`/${locale}/catalog`} className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
+            <Link href={`/${locale}/dashboard/buyer/notifications`} className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
+              <p className="text-sm font-medium text-foreground">{d.notificationsTitle}</p>
+            </Link>
+            <Link href={`/${locale}/cart`} className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
               <p className="text-sm font-medium text-foreground">{d.quickCart}</p>
             </Link>
             <Link href={`/${locale}/profile`} className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
@@ -116,7 +119,7 @@ export default function BuyerDashboardClient() {
                         <div className="flex items-center gap-3">
                           <StatusBadge label={getOrderStatusLabel(order.status, d)} tone={getOrderStatusTone(order.status)} />
                           <p className="text-sm font-semibold text-foreground">
-                            {formatETB(order.total, locale)} {order.currency}
+                            {formatETB(order.total, locale)}
                           </p>
                         </div>
                       </div>

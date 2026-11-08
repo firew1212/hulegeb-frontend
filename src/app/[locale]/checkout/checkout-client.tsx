@@ -156,10 +156,10 @@ export default function CheckoutClient() {
   }
 
   async function placeOrder() {
+    const hasCartItems = Boolean(cart && cart.items.length > 0);
     if (
       inFlightRef.current ||
-      !cart ||
-      cart.items.length === 0 ||
+      (!hasCartItems && !pendingKeyRef.current) ||
       !storageReady ||
       storageError ||
       order ||
@@ -287,7 +287,7 @@ export default function CheckoutClient() {
                 <div>
                   <dt className="text-sm text-muted-foreground">{d.total}</dt>
                   <dd className="mt-1 text-lg font-semibold text-foreground">
-                    {formatETB(order.total, locale)} {order.currency}
+                    {formatETB(order.total, locale)}
                   </dd>
                 </div>
               </dl>
@@ -355,6 +355,37 @@ export default function CheckoutClient() {
           ) : !cart || cart.items.length === 0 ? (
             <section className="mt-6 rounded-2xl border border-border bg-surface p-6">
               <p className="text-muted-foreground">{d.empty}</p>
+              {storageError ? (
+                <p className="mt-4 text-sm text-danger" role="alert">
+                  {storageError}
+                </p>
+              ) : null}
+              {submitError ? (
+                <p className="mt-4 text-sm text-danger" role="alert">
+                  {submitError}
+                </p>
+              ) : null}
+              {pendingKey ? (
+                <>
+                  {!submitError ? (
+                    <p className="mt-3 text-sm text-muted-foreground" role="status">
+                      {d.uncertainError}
+                    </p>
+                  ) : null}
+                  <Button
+                    type="button"
+                    className="mt-4"
+                    disabled={
+                      submitting ||
+                      !storageReady ||
+                      Boolean(storageError)
+                    }
+                    onClick={() => void placeOrder()}
+                  >
+                    {submitting ? d.placingOrder : d.retryCheckout}
+                  </Button>
+                </>
+              ) : null}
               <Link href={`/${locale}/cart`} className="mt-4 inline-flex">
                 <Button variant="secondary">{d.backToCart}</Button>
               </Link>
