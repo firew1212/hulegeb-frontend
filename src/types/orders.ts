@@ -22,6 +22,8 @@ export type BuyerOrder = {
   paymentAmount: string | null;
 };
 
+export type AdminOrder = BuyerOrder;
+
 export type OrderContact = {
   phone: string;
   telegram: string;

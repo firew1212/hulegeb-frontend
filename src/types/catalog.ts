@@ -8,7 +8,28 @@ export type Category = {
   parentId?: string | null;
   sortOrder?: number;
   isActive?: boolean;
+  parent?: Pick<Category, "id" | "slug" | "nameEn" | "nameAm"> | null;
   children?: Category[];
+};
+
+export type CreateCategoryInput = {
+  slug: string;
+  nameEn: string;
+  nameAm: string;
+  descriptionEn?: string;
+  descriptionAm?: string;
+  parentId?: string;
+  sortOrder?: number;
+};
+
+export type UpdateCategoryInput = {
+  slug?: string;
+  nameEn?: string;
+  nameAm?: string;
+  descriptionEn?: string | null;
+  descriptionAm?: string | null;
+  parentId?: string | null;
+  sortOrder?: number;
 };
 
 export type ProductImage = {
@@ -70,6 +91,26 @@ export type SellerProduct = Omit<Product, "variants" | "images"> & {
   status: SellerProductStatus;
   variants: SellerProductVariant[];
   images: SellerProductImage[];
+};
+
+export type AdminProduct = SellerProduct & {
+  seller: {
+    id: string;
+    displayName: string;
+    legalName: string | null;
+    status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "SUSPENDED";
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string | null;
+      phone: string | null;
+    };
+  };
+};
+
+export type PendingAdminProduct = AdminProduct & {
+  status: "PENDING_APPROVAL";
 };
 
 export type ProductListResponse = {
