@@ -21,6 +21,27 @@ export default function BuyerDashboardClient() {
   const locale = useLocale();
   const { user } = useAuth();
   const d = dict.dashboard;
+  const sellerApplication = dict.sellerApplication;
+  const sellerDashboardPath =
+    user?.sellerStatus === "APPROVED"
+      ? `/${locale}/dashboard/seller`
+      : `/${locale}/seller-application`;
+  const sellerEntryDescription =
+    user?.sellerStatus === "PENDING_APPROVAL"
+      ? sellerApplication.dashboardPending
+      : user?.sellerStatus === "APPROVED"
+        ? sellerApplication.dashboardApproved
+        : user?.sellerStatus === "REJECTED"
+          ? sellerApplication.dashboardRejected
+          : user?.sellerStatus === "SUSPENDED"
+            ? sellerApplication.dashboardSuspended
+            : sellerApplication.dashboardDescription;
+  const sellerEntryAction =
+    user?.sellerStatus === "APPROVED"
+      ? sellerApplication.openSellerDashboard
+      : user?.sellerStatus === "PENDING_APPROVAL"
+        ? sellerApplication.viewApplication
+        : sellerApplication.dashboardAction;
 
   const [orders, setOrders] = useState<BuyerOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +79,7 @@ export default function BuyerDashboardClient() {
             </h1>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <Link href={`/${locale}/dashboard/buyer/orders`} className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
               <p className="text-sm font-medium text-foreground">{d.quickOrders}</p>
             </Link>
@@ -70,6 +91,20 @@ export default function BuyerDashboardClient() {
             </Link>
             <Link href={`/${locale}/profile`} className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
               <p className="text-sm font-medium text-foreground">{d.quickProfile}</p>
+            </Link>
+            <Link
+              href={sellerDashboardPath}
+              className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            >
+              <p className="text-sm font-medium text-foreground">
+                {sellerApplication.dashboardTitle}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {sellerEntryDescription}
+              </p>
+              <p className="mt-3 text-sm font-medium text-brand">
+                {sellerEntryAction}
+              </p>
             </Link>
           </div>
 

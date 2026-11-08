@@ -1,7 +1,7 @@
-import Client from "./client";
+import NotificationsClient from "./client";
 
 export const instant = false;
 
 export default function Page() {
-  return <Client />;
+  return <NotificationsClient />;
 }
