@@ -15,6 +15,7 @@ import {
   getCategoryHref,
   getCategoryName,
 } from "@/components/layout/category-links";
+import { SellerEntryLink } from "@/components/layout/seller-entry-link";
 
 export function MobileNav({
   locale,
@@ -52,6 +53,7 @@ export function MobileNav({
   ];
 
   const [open, setOpen] = useState(false);
+  const [accountActionsOpen, setAccountActionsOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
 
@@ -166,7 +168,7 @@ export function MobileNav({
         aria-controls="mobile-slideover-drawer"
         aria-label={open ? dict.mobileNav.closeMenu : dict.mobileNav.openMenu}
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border/80 bg-surface/80 text-foreground transition-all duration-200 hover:border-brand/40 hover:bg-surface hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active-press motion-reduce:transition-none"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-surface/80 text-foreground transition-all duration-200 hover:border-brand/40 hover:bg-surface hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active-press motion-reduce:transition-none"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -234,7 +236,7 @@ export function MobileNav({
                 type="button"
                 onClick={closeDrawer}
                 aria-label={dict.mobileNav.closeMenu}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border/80 bg-surface/80 text-muted-foreground transition-all duration-200 hover:border-brand/40 hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active-press motion-reduce:transition-none"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-surface/80 text-muted-foreground transition-all duration-200 hover:border-brand/40 hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active-press motion-reduce:transition-none"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -347,10 +349,20 @@ export function MobileNav({
                     </Link>
                   );
                 })}
+                <SellerEntryLink
+                  onClick={closeDrawer}
+                  className="flex min-h-[44px] items-center justify-between rounded-xl bg-brand px-3.5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span>{dict.home.sellerCta}</span>
+                  <span aria-hidden="true">→</span>
+                </SellerEntryLink>
               </nav>
 
               {/* User Account & Profile Section */}
-              <div className="rounded-2xl border border-border/80 bg-muted/30 p-4 space-y-3">
+              <section
+                aria-label={dict.nav.account}
+                className="rounded-2xl border border-border/80 bg-muted/30 p-4 space-y-3"
+              >
                 {status === "initializing" ? (
                   <div
                     className="flex items-center gap-3 py-2 animate-pulse"
@@ -503,24 +515,56 @@ export function MobileNav({
                   </div>
                 ) : (
                   /* Unauthenticated Actions */
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      href={`/${loc}/login`}
-                      onClick={closeDrawer}
-                      className="flex min-h-10 items-center justify-center rounded-xl border border-border/80 bg-surface px-4 py-2.5 text-center text-xs font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  <div>
+                    <button
+                      type="button"
+                      aria-expanded={accountActionsOpen}
+                      aria-controls="mobile-account-actions"
+                      onClick={() =>
+                        setAccountActionsOpen((current) => !current)
+                      }
+                      className="flex min-h-11 w-full items-center justify-between rounded-xl border border-border/80 bg-surface px-3 text-sm font-semibold text-foreground transition-colors hover:border-brand/30 hover:bg-accent-soft hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      {dict.auth.signIn}
-                    </Link>
-                    <Link
-                      href={`/${loc}/register`}
-                      onClick={closeDrawer}
-                      className="flex min-h-10 items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-center text-xs font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active-press"
-                    >
-                      {dict.auth.createAccount}
-                    </Link>
+                      {dict.nav.account}
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className={`h-4 w-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none ${
+                          accountActionsOpen ? "rotate-180" : ""
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.22 7.47a.75.75 0 011.06.02L10 11.168l3.72-3.678a.75.75 0 111.05 1.07l-4.25 4.2a.75.75 0 01-1.05 0l-4.25-4.2a.75.75 0 01.02-1.06z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                    {accountActionsOpen ? (
+                      <div
+                        id="mobile-account-actions"
+                        className="mt-2 flex flex-col gap-2 animate-fade-in motion-reduce:animate-none"
+                      >
+                        <Link
+                          href={`/${loc}/login`}
+                          onClick={closeDrawer}
+                          className="flex min-h-10 items-center justify-center rounded-xl border border-border/80 bg-surface px-4 py-2.5 text-center text-xs font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {dict.auth.signIn}
+                        </Link>
+                        <Link
+                          href={`/${loc}/register`}
+                          onClick={closeDrawer}
+                          className="flex min-h-10 items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-center text-xs font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active-press"
+                        >
+                          {dict.auth.createAccount}
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
                 )}
-              </div>
+              </section>
 
               {/* Language Switcher Section */}
               <div className="pt-2 border-t border-border/60">

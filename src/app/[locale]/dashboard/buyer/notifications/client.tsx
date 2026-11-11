@@ -27,6 +27,7 @@ function getNotificationMessage(
   type: string,
   d: Dictionary["dashboard"],
   sellerProducts: Dictionary["sellerProducts"],
+  sellerApplication: Dictionary["sellerApplication"],
 ) {
   switch (type) {
     case "ORDER_CANCELLED":
@@ -37,6 +38,10 @@ function getNotificationMessage(
       return sellerProducts.productApprovedNotification;
     case "PRODUCT_REJECTED":
       return sellerProducts.productRejectedNotification;
+    case "SELLER_APPLICATION_APPROVED":
+      return sellerApplication.approvedTitle;
+    case "SELLER_APPLICATION_REJECTED":
+      return sellerApplication.rejectedTitle;
     default:
       return d.genericNotification;
   }
@@ -218,6 +223,9 @@ export default function NotificationsClient({
                   RESOURCE_ID_RE.test(notification.resourceId)
                     ? notification.resourceId
                     : null;
+                const isSellerApplicationNotification =
+                  notification.type === "SELLER_APPLICATION_APPROVED" ||
+                  notification.type === "SELLER_APPLICATION_REJECTED";
                 const marking = pendingIds.has(notification.id);
 
                 return (
@@ -247,6 +255,7 @@ export default function NotificationsClient({
                             notification.type,
                             d,
                             dict.sellerProducts,
+                            dict.sellerApplication,
                           )}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -271,6 +280,14 @@ export default function NotificationsClient({
                           <p className="mt-3 text-sm text-muted-foreground">
                             {dict.sellerProducts.productNotificationUnavailable}
                           </p>
+                        ) : null}
+                        {isSellerApplicationNotification ? (
+                          <Link
+                            href={`/${locale}/seller-application`}
+                            className="mt-3 inline-flex text-sm font-medium text-brand underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {dict.sellerApplication.viewApplication}
+                          </Link>
                         ) : null}
                       </div>
 

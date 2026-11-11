@@ -8,6 +8,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { LangSetter } from "@/components/i18n/lang-setter";
+import { MarketplaceSearchProvider } from "@/components/home/marketplace-search-context";
 
 type Props = { children: React.ReactNode; params: Promise<{ locale: string }> };
 
@@ -29,9 +30,11 @@ export default async function LocaleLayout({ children, params }: Props) {
     <LocaleProvider locale={locale} dictionary={dict}>
       <LangSetter locale={locale} />
       <AuthProvider>
-        <Header />
-        <div className="flex-1">{children}</div>
-        <Footer locale={locale} />
+        <MarketplaceSearchProvider>
+          <Header />
+          <div className="flex-1">{children}</div>
+          <Footer locale={locale} />
+        </MarketplaceSearchProvider>
       </AuthProvider>
     </LocaleProvider>
   );

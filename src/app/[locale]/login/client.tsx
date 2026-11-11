@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation";
 
 import { useDictionary, useLocale } from "@/i18n/provider";
 import { setAuthTokens } from "@/lib/auth-tokens";
-import { loginUser } from "@/lib/auth-api";
+import { getMe, loginUser } from "@/lib/auth-api";
 import { getLocalizedApiErrorMessage } from "@/i18n/errors";
 import { useAuth } from "@/lib/auth-context";
-import { getDashboardPath } from "@/lib/dashboard";
+import {
+  getAuthorizedReturnTo,
+  getDashboardPath,
+} from "@/lib/dashboard";
 import { AuthShell, FieldError, inputClass } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +18,7 @@ export default function LoginPage({ returnTo }: { returnTo?: string }) {
   const dict = useDictionary();
   const locale = useLocale();
   const router = useRouter();
-  const { refreshSession, setAuthenticatedUser } = useAuth();
+  const { setAuthenticatedUser } = useAuth();
   const a = dict.auth;
 
   const [identifier, setIdentifier] = useState("");
@@ -39,12 +42,11 @@ export default function LoginPage({ returnTo }: { returnTo?: string }) {
         setAuthTokens({
           accessToken: result.accessToken,
         });
-        if (result.user) setAuthenticatedUser(result.user);
-        else await refreshSession();
+        const user = result.user ?? await getMe();
+        setAuthenticatedUser(user);
         const destination =
-          returnTo && (!result.user || result.user.roles.includes("BUYER"))
-            ? returnTo
-            : `/${locale}${getDashboardPath(result.user) ?? ""}`;
+          getAuthorizedReturnTo(returnTo, user, locale) ??
+          `/${locale}${getDashboardPath(user) ?? ""}`;
         router.push(destination);
       }
     } catch (err) {
@@ -65,11 +67,12 @@ export default function LoginPage({ returnTo }: { returnTo?: string }) {
         mfaCode,
       );
       setAuthTokens({ accessToken: result.accessToken });
-      if (result.user) setAuthenticatedUser(result.user);
-      else await refreshSession();
-      router.push(
-        `/${locale}${getDashboardPath(result.user) ?? ""}`,
-      );
+      const user = result.user ?? await getMe();
+      setAuthenticatedUser(user);
+      const destination =
+        getAuthorizedReturnTo(returnTo, user, locale) ??
+        `/${locale}${getDashboardPath(user) ?? ""}`;
+      router.push(destination);
     } catch (err) {
       setError(getLocalizedApiErrorMessage(err, dict.apiErrors, a.error));
     } finally {

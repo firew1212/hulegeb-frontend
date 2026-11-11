@@ -352,22 +352,72 @@ function CatalogContent() {
 
   return (
     <main aria-busy={loading}>
-      <section className="section">
+      <section className="bg-gradient-to-b from-[#f7f4ff] via-background to-background py-8 sm:py-12">
         <Container>
-          <header className="max-w-2xl">
-            <p className="text-sm font-semibold text-brand">
+          <header className="max-w-3xl">
+            <p className="inline-flex rounded-full border border-brand/15 bg-brand/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-brand">
               {dict.catalog.eyebrow}
             </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {dict.catalog.title}
             </h1>
-            <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:mt-4">
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
               {dict.catalog.description}
             </p>
           </header>
 
+          {rootCategories.length > 0 ? (
+            <nav
+              className="mt-6 flex gap-2 overflow-x-auto pb-2"
+              aria-label={dict.catalog.categoryLabel}
+            >
+              <button
+                type="button"
+                aria-pressed={!categoryId}
+                onClick={() =>
+                  updateParams({
+                    categoryId: null,
+                    subcategoryId: null,
+                    page: "1",
+                  })
+                }
+                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${
+                  !categoryId
+                    ? "border-brand bg-brand text-white shadow-soft"
+                    : "border-border bg-surface text-foreground hover:border-brand/40 hover:text-brand"
+                }`}
+              >
+                {dict.catalog.allCategories}
+              </button>
+              {rootCategories.map((category) => {
+                const isSelected = categoryId === category.id;
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() =>
+                      updateParams({
+                        categoryId: category.id,
+                        subcategoryId: null,
+                        page: "1",
+                      })
+                    }
+                    className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none ${
+                      isSelected
+                        ? "border-brand bg-brand text-white shadow-soft"
+                        : "border-border bg-surface text-foreground hover:border-brand/40 hover:text-brand"
+                    }`}
+                  >
+                    {categoryName(category, locale)}
+                  </button>
+                );
+              })}
+            </nav>
+          ) : null}
+
           {categoriesError ? (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/30 bg-danger/5 p-4">
               <p className="text-sm text-danger" role="alert">
                 {categoriesError}
               </p>
@@ -382,26 +432,40 @@ function CatalogContent() {
             </div>
           ) : null}
 
-          <fieldset className="mt-6 rounded-2xl border border-border bg-background p-4 md:p-6">
+          <fieldset className="mt-5 rounded-2xl border border-border/70 bg-surface p-4 shadow-soft sm:p-5 md:p-6">
             <legend className="px-2 text-sm font-semibold text-foreground">
               {dict.catalog.filters}
             </legend>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="flex flex-col gap-1.5 text-sm">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm lg:col-span-2">
                 <span className="font-medium text-foreground">
                   {dict.catalog.searchLabel}
                 </span>
-                <input
-                  type="search"
-                  value={searchInput}
-                  placeholder={dict.catalog.searchPlaceholder}
-                  onChange={(event) =>
-                    setSearchDraft({ query: q, value: event.target.value })
-                  }
-                  className={CONTROL_CLASS_NAME}
-                />
+                <span className="relative">
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <input
+                    type="search"
+                    value={searchInput}
+                    placeholder={dict.catalog.searchPlaceholder}
+                    onChange={(event) =>
+                      setSearchDraft({ query: q, value: event.target.value })
+                    }
+                    className={`${CONTROL_CLASS_NAME} h-12 border-brand/25 bg-background pl-11 text-base shadow-sm`}
+                  />
+                </span>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm">
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm">
                 <span className="font-medium text-foreground">
                   {dict.catalog.categoryLabel}
                 </span>
@@ -425,7 +489,7 @@ function CatalogContent() {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm">
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm">
                 <span className="font-medium text-foreground">
                   {dict.catalog.subcategoryLabel}
                 </span>
@@ -448,7 +512,7 @@ function CatalogContent() {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm">
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm">
                 <span className="font-medium text-foreground">
                   {dict.catalog.conditionLabel}
                 </span>
@@ -470,7 +534,7 @@ function CatalogContent() {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1.5 text-sm">
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm">
                 <span className="font-medium text-foreground">
                   {dict.catalog.sortLabel}
                 </span>
@@ -580,7 +644,7 @@ function CatalogContent() {
           ) : null}
 
           <p
-            className="mt-6 text-sm text-muted-foreground"
+            className="mt-5 text-sm font-medium text-muted-foreground"
             role="status"
             aria-live="polite"
             aria-atomic="true"
@@ -609,18 +673,25 @@ function CatalogContent() {
             </div>
           ) : loading ? (
             <div
-              className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+              className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
               aria-hidden="true"
             >
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-72 animate-pulse rounded-2xl border border-border bg-muted motion-reduce:animate-none"
-                />
+                  className="overflow-hidden rounded-3xl border border-border/70 bg-surface shadow-card"
+                >
+                  <div className="aspect-square animate-pulse bg-muted motion-reduce:animate-none" />
+                  <div className="space-y-3 p-4 sm:p-5">
+                    <div className="h-3 w-1/3 animate-pulse rounded bg-muted motion-reduce:animate-none" />
+                    <div className="h-4 w-4/5 animate-pulse rounded bg-muted motion-reduce:animate-none" />
+                    <div className="h-4 w-2/3 animate-pulse rounded bg-muted motion-reduce:animate-none" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : products.length ? (
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -630,7 +701,7 @@ function CatalogContent() {
               ))}
             </div>
           ) : (
-            <div className="mt-8 rounded-2xl border border-border bg-muted p-8 text-center">
+            <div className="mt-5 rounded-2xl border border-border bg-surface p-8 text-center shadow-card">
               <p className="text-sm text-muted-foreground">
                 {dict.catalog.empty}
               </p>

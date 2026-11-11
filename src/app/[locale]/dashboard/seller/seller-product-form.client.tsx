@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import { ProtectedRoute } from "@/components/auth/protected-route";
@@ -52,6 +53,11 @@ type ProductDraft = {
   condition: ProductCondition;
 };
 
+type PendingProductImage = {
+  id: number;
+  input: SellerImageInput;
+};
+
 const emptyDraft: ProductDraft = {
   categoryId: "",
   slug: "",
@@ -71,7 +77,8 @@ function flattenCategories(categories: Category[]): Category[] {
 
 function isHttpsUrl(value: string) {
   try {
-    return new URL(value).protocol === "https:";
+    const url = new URL(value);
+    return url.protocol === "https:" && !!url.hostname;
   } catch {
     return false;
   }
@@ -182,12 +189,16 @@ export default function SellerProductFormClient({
   const [productError, setProductError] = useState<string | null>(null);
   const [productReload, setProductReload] = useState(0);
   const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
+  const [pendingImages, setPendingImages] = useState<PendingProductImage[]>([]);
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [savingProduct, setSavingProduct] = useState(false);
   const [mutation, setMutation] = useState<string | null>(null);
   const operationInFlight = useRef(false);
   const productSubmitInFlight = useRef(false);
+  const pendingImageId = useRef(0);
+  const activeProductId = productId ?? createdProductId;
 
   useEffect(() => {
     let active = true;
@@ -310,6 +321,8 @@ export default function SellerProductFormClient({
     setSavingProduct(true);
     setFormError(null);
     setFeedback(null);
+    let createdDuringSubmit = false;
+    let submittingPendingImages = false;
     try {
       const input = buildProductInput();
       if (isEditing && productId) {
@@ -317,20 +330,49 @@ export default function SellerProductFormClient({
         setProduct(updated);
         setFeedback(messages.pendingApprovalFeedback);
       } else {
-        const created = await createSellerProduct(input);
+        const savedProduct = createdProductId
+          ? await updateSellerProduct(createdProductId, input)
+          : await createSellerProduct(input);
+        if (!createdProductId) {
+          createdDuringSubmit = true;
+          setCreatedProductId(savedProduct.id);
+        }
+        setProduct(savedProduct);
+        submittingPendingImages = pendingImages.length > 0;
+        for (const pendingImage of pendingImages) {
+          const image = await createSellerImage(savedProduct.id, pendingImage.input);
+          setProduct((current) =>
+            current
+              ? {
+                  ...current,
+                  status: "PENDING_APPROVAL",
+                  images: [...current.images, image].sort(
+                    (a, b) => a.sortOrder - b.sortOrder,
+                  ),
+                }
+              : current,
+          );
+          setPendingImages((current) =>
+            current.filter((item) => item.id !== pendingImage.id),
+          );
+        }
         router.push(
-          `/${locale}/dashboard/seller/products/${encodeURIComponent(created.id)}`,
+          `/${locale}/dashboard/seller/products/${encodeURIComponent(savedProduct.id)}`,
         );
       }
     } catch (requestError: unknown) {
-      setFormError(
+      const errorMessage =
         requestError instanceof Error && !("status" in requestError)
           ? requestError.message
           : getLocalizedApiErrorMessage(
               requestError,
               dict.apiErrors,
               messages.saveError,
-            ),
+            );
+      setFormError(
+        (createdDuringSubmit || createdProductId) && submittingPendingImages
+          ? `${messages.imageSubmissionFailed} ${errorMessage}`
+          : errorMessage,
       );
     } finally {
       productSubmitInFlight.current = false;
@@ -376,16 +418,16 @@ export default function SellerProductFormClient({
     variantId: string | null,
     input: SellerVariantInput,
   ): Promise<boolean> {
-    if (!productId) return false;
+    if (!activeProductId) return false;
     return runMutation(variantId ?? "variant-new", async () => {
       const saved = variantId
-        ? await updateSellerVariant(productId, variantId, {
+        ? await updateSellerVariant(activeProductId, variantId, {
             name: input.name,
             price: input.price,
             stockQuantity: input.stockQuantity,
             attributes: input.attributes ?? {},
           })
-        : await createSellerVariant(productId, input);
+        : await createSellerVariant(activeProductId, input);
       setProduct((current) =>
         current
           ? {
@@ -402,10 +444,10 @@ export default function SellerProductFormClient({
   }
 
   async function removeVariant(variant: SellerProductVariant) {
-    if (!productId) return;
+    if (!activeProductId) return;
     await runMutation(variant.id, async () => {
       if (variant.isActive) {
-        await deactivateSellerVariant(productId, variant.id);
+        await deactivateSellerVariant(activeProductId, variant.id);
         setProduct((current) =>
           current
             ? {
@@ -417,7 +459,7 @@ export default function SellerProductFormClient({
             : current,
         );
       } else {
-        const restored = await updateSellerVariant(productId, variant.id, {
+        const restored = await updateSellerVariant(activeProductId, variant.id, {
           isActive: true,
         });
         setProduct((current) =>
@@ -438,11 +480,11 @@ export default function SellerProductFormClient({
     imageId: string | null,
     input: SellerImageInput,
   ): Promise<boolean> {
-    if (!productId) return false;
+    if (!activeProductId) return false;
     return runMutation(imageId ?? "image-new", async () => {
       const saved = imageId
-        ? await updateSellerImage(productId, imageId, input)
-        : await createSellerImage(productId, input);
+        ? await updateSellerImage(activeProductId, imageId, input)
+        : await createSellerImage(activeProductId, input);
       setProduct((current) =>
         current
           ? {
@@ -461,9 +503,9 @@ export default function SellerProductFormClient({
   }
 
   async function deleteImage(image: SellerProductImage) {
-    if (!productId) return;
+    if (!activeProductId) return;
     await runMutation(image.id, async () => {
-      await removeSellerImage(productId, image.id);
+      await removeSellerImage(activeProductId, image.id);
       setProduct((current) =>
         current
           ? {
@@ -476,12 +518,12 @@ export default function SellerProductFormClient({
   }
 
   async function unpublish() {
-    if (!productId || !product) return;
+    if (!activeProductId || !product) return;
     if (!window.confirm(messages.unpublishConfirmation)) return;
     await runMutation(
       "unpublish",
       async () => {
-      const updated = await unpublishSellerProduct(productId);
+      const updated = await unpublishSellerProduct(activeProductId);
       setProduct(updated);
       },
       { markPending: false, successMessage: messages.unpublishedFeedback },
@@ -687,7 +729,13 @@ export default function SellerProductFormClient({
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button type="submit" disabled={savingProduct || categoriesLoading || !!categoriesError}>
-                  {savingProduct ? messages.saving : isEditing ? messages.saveProduct : messages.createProduct}
+                  {savingProduct
+                    ? messages.saving
+                    : isEditing
+                      ? messages.saveProduct
+                      : createdProductId
+                        ? messages.retryImages
+                        : messages.createProduct}
                 </Button>
                 <Button
                   type="button"
@@ -699,7 +747,59 @@ export default function SellerProductFormClient({
               </div>
             </form>
 
-            {product && productId ? (
+            {!isEditing ? (
+              <section className="mt-8 rounded-2xl border border-border bg-surface p-5 shadow-soft sm:p-6">
+                <h2 className="text-lg font-semibold text-foreground">{messages.imagesTitle}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{messages.imagesDescription}</p>
+                {pendingImages.length > 0 ? (
+                  <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+                    {pendingImages.map(({ id, input }) => (
+                      <li key={id} className="rounded-xl border border-border p-4">
+                        <ProductImagePreview
+                          src={input.imageUrl}
+                          alt={input.altTextEn || input.altTextAm || messages.imagePreview}
+                        />
+                        <p className="mt-3 break-all text-sm text-foreground">{input.imageUrl}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {messages.sortOrderLabel}: {input.sortOrder ?? 0}
+                        </p>
+                        <Button
+                          className="mt-3"
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={savingProduct}
+                          onClick={() =>
+                            setPendingImages((current) =>
+                              current.filter((image) => image.id !== id),
+                            )
+                          }
+                        >
+                          {messages.removeImage}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="mt-5">
+                  <ImageDraftEditor
+                    key={pendingImages.length}
+                    busy={savingProduct}
+                    messages={messages}
+                    initialSortOrder={pendingImages.length}
+                    onAdd={(input) => {
+                      pendingImageId.current += 1;
+                      setPendingImages((current) => [
+                        ...current,
+                        { id: pendingImageId.current, input },
+                      ]);
+                    }}
+                  />
+                </div>
+              </section>
+            ) : null}
+
+            {product && activeProductId ? (
               <div className="mt-8 grid gap-6">
                 <section className="rounded-2xl border border-border bg-surface p-5 shadow-soft sm:p-6">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -931,6 +1031,115 @@ function VariantEditor({
   );
 }
 
+function ProductImagePreview({ src, alt }: { src: string; alt: string }) {
+  if (!isHttpsUrl(src)) return null;
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-background">
+      <Image
+        src={src}
+        alt={alt}
+        width={600}
+        height={400}
+        unoptimized
+        className="h-48 w-full object-contain"
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
+function ImageDraftEditor({
+  busy,
+  messages,
+  initialSortOrder,
+  onAdd,
+}: {
+  busy: boolean;
+  messages: SellerProductMessages;
+  initialSortOrder: number;
+  onAdd: (input: SellerImageInput) => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    setError(null);
+    try {
+      onAdd(readImage(form, messages));
+      form.reset();
+      setPreviewUrl("");
+    } catch (submitError: unknown) {
+      setError(
+        submitError instanceof Error ? submitError.message : messages.imageValidation,
+      );
+    }
+  }
+
+  return (
+    <form
+      noValidate
+      onSubmit={submit}
+      className="rounded-xl border border-border p-4"
+    >
+      <h3 className="font-medium text-foreground">{messages.addImage}</h3>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <Field label={messages.imageUrlLabel} required>
+            <input
+              className={CONTROL_CLASS}
+              name="imageUrl"
+              type="url"
+              placeholder="https://"
+              maxLength={2048}
+              required
+              disabled={busy}
+              onChange={(event) => setPreviewUrl(event.target.value.trim())}
+            />
+          </Field>
+          <ProductImagePreview src={previewUrl} alt={messages.imagePreview} />
+        </div>
+        <Field label={messages.altTextEnLabel}>
+          <input
+            className={CONTROL_CLASS}
+            name="altTextEn"
+            maxLength={255}
+            disabled={busy}
+          />
+        </Field>
+        <Field label={messages.altTextAmLabel}>
+          <input
+            className={CONTROL_CLASS}
+            name="altTextAm"
+            maxLength={255}
+            disabled={busy}
+          />
+        </Field>
+        <Field label={messages.sortOrderLabel} required>
+          <input
+            className={CONTROL_CLASS}
+            name="sortOrder"
+            type="number"
+            min="0"
+            max="10000"
+            step="1"
+            defaultValue={initialSortOrder}
+            required
+            disabled={busy}
+          />
+        </Field>
+      </div>
+      {error ? <p className="mt-3 text-sm text-danger" role="alert">{error}</p> : null}
+      <div className="mt-4">
+        <Button type="submit" size="sm" disabled={busy}>
+          {messages.addImage}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function ImageEditor({
   image,
   busy,
@@ -947,6 +1156,7 @@ function ImageEditor({
   onRemove?: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState(image?.imageUrl ?? "");
   const [saving, setSaving] = useState(false);
   const saveInFlight = useRef(false);
 
@@ -959,7 +1169,10 @@ function ImageEditor({
     setError(null);
     try {
       const saved = await onSave(readImage(form, messages));
-      if (!image && saved) form.reset();
+      if (!image && saved) {
+        form.reset();
+        setPreviewUrl("");
+      }
     } catch (submitError: unknown) {
       setError(
         submitError instanceof Error ? submitError.message : messages.saveError,
@@ -972,6 +1185,7 @@ function ImageEditor({
 
   return (
     <form
+      noValidate
       onSubmit={(event) => void submit(event)}
       className="rounded-xl border border-border p-4"
     >
@@ -988,11 +1202,19 @@ function ImageEditor({
               defaultValue={image?.imageUrl ?? ""}
               placeholder="https://"
               maxLength={2048}
-              pattern="https://.*"
               required
               disabled={busy || saving}
+              onChange={(event) => setPreviewUrl(event.target.value.trim())}
             />
           </Field>
+          <ProductImagePreview
+            src={previewUrl}
+            alt={
+              image?.altTextEn ||
+              image?.altTextAm ||
+              messages.imagePreview
+            }
+          />
         </div>
         <Field label={messages.altTextEnLabel}>
           <input

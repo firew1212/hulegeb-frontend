@@ -98,11 +98,15 @@ export default function BuyerOrderDetailClient() {
         if (active) setContact(officialContact);
       } catch (contactLoadError) {
         if (active) {
-          setContactError(getLocalizedApiErrorMessage(
-            contactLoadError,
-            dict.apiErrors,
-            d.officialContactError,
-          ));
+          setContactError(
+            isApiError(contactLoadError) && contactLoadError.status === 503
+              ? d.officialContactUnavailable
+              : getLocalizedApiErrorMessage(
+                  contactLoadError,
+                  dict.apiErrors,
+                  d.officialContactError,
+                ),
+          );
         }
       } finally {
         if (active) setContactLoading(false);
@@ -116,6 +120,7 @@ export default function BuyerOrderDetailClient() {
     contactAttempt,
     contactOrderId,
     d.officialContactError,
+    d.officialContactUnavailable,
     dict.apiErrors,
     selectedPaymentOption,
   ]);

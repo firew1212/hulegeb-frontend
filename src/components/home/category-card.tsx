@@ -8,7 +8,6 @@ type CategoryCardProps = {
   title: string;
   image: ProductImage | undefined;
   locale: string;
-  eyebrow: string;
   explore: string;
 };
 
@@ -25,15 +24,16 @@ export function CategoryCard({
   title,
   image,
   locale,
-  eyebrow,
   explore,
 }: CategoryCardProps) {
-  const imageAlt = image?.altTextEn ?? image?.altTextAm ?? category.nameEn;
+  const imageAlt =
+    (locale === "am" ? image?.altTextAm : image?.altTextEn) ??
+    (locale === "am" ? category.nameAm : category.nameEn);
 
   return (
     <Link
       href={`/${locale}/catalog?categoryId=${category.id}`}
-      aria-label={`Browse ${title} products`}
+      aria-label={`${explore}: ${title}`}
       className="categories-strip__link"
     >
       <div className="categories-strip__image">
@@ -51,11 +51,9 @@ export function CategoryCard({
         )}
         <div className="categories-strip__scrim" />
         <div className="categories-strip__content">
-          <p className="categories-strip__eyebrow">{eyebrow}</p>
           <h3 className="categories-strip__name">{title}</h3>
         </div>
         <div className="categories-strip__footer" aria-hidden="true">
-          <span>{explore}</span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"

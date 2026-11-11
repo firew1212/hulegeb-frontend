@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useAuth } from "@/lib/auth-context";
 import { useDictionary, useLocale } from "@/i18n/provider";
@@ -20,12 +20,20 @@ export function ProtectedRoute({
   const dict = useDictionary();
   const locale = useLocale();
   const router = useRouter();
+  const pathname = usePathname();
+  const loginHref = `/${locale}/login?returnTo=${encodeURIComponent(pathname)}`;
 
   useEffect(() => {
     if (status === "unauthenticated" || status === "expired") {
-      router.replace(`/${locale}/login`);
+      const returnTo =
+        typeof window === "undefined"
+          ? pathname
+          : `${pathname}${window.location.search}${window.location.hash}`;
+      router.replace(
+        `/${locale}/login?returnTo=${encodeURIComponent(returnTo)}`,
+      );
     }
-  }, [status, locale, router]);
+  }, [status, locale, pathname, router]);
 
   if (status === "initializing") {
     return (
@@ -47,7 +55,7 @@ export function ProtectedRoute({
         aria-live="polite"
       >
         <p className="text-muted-foreground">{dict.apiErrors.unauthorized}</p>
-        <Button className="mt-5" href={`/${locale}/login`}>
+        <Button className="mt-5" href={loginHref}>
           {dict.auth.signIn}
         </Button>
       </section>

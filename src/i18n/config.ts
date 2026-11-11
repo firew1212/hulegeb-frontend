@@ -10,19 +10,27 @@ export function isLocale(value: string): value is Locale {
 const localizedPaths = new Set([
   "",
   "/auth/logout",
+  "/cart",
   "/catalog",
   "/checkout",
   "/dashboard/admin",
+  "/dashboard/admin/categories",
+  "/dashboard/admin/orders",
+  "/dashboard/admin/product-moderation",
+  "/dashboard/admin/seller-applications",
   "/dashboard/buyer",
   "/dashboard/buyer/notifications",
   "/dashboard/buyer/orders",
   "/dashboard/seller",
   "/dashboard/seller/notifications",
+  "/dashboard/seller/products",
+  "/dashboard/seller/products/new",
   "/forgot-password",
   "/login",
   "/profile",
   "/register",
   "/reset-password",
+  "/seller-application",
   "/verify-admin-mfa",
   "/verify-email",
 ]);
@@ -34,7 +42,8 @@ export function getLocalizedPathname(pathname: string, locale: Locale): string {
   const hasEquivalentRoute =
     localizedPaths.has(route) ||
     /^\/products\/[^/]+$/.test(route) ||
-    /^\/dashboard\/buyer\/orders\/[^/]+$/.test(route);
+    /^\/dashboard\/buyer\/orders\/[^/]+$/.test(route) ||
+    /^\/dashboard\/seller\/products\/[^/]+$/.test(route);
 
   return `/${locale}${hasEquivalentRoute ? route : ""}`;
 }

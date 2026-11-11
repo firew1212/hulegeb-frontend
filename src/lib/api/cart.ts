@@ -1,4 +1,5 @@
 import { request } from "@/lib/api";
+import { notifyCartUpdated } from "@/lib/cart-events";
 import type { Cart } from "@/types/cart";
 import type { BuyerOrder } from "@/types/orders";
 
@@ -25,6 +26,9 @@ export function checkoutCart(idempotencyKey: string): Promise<BuyerOrder> {
     method: "POST",
     auth: true,
     headers: { "Idempotency-Key": idempotencyKey },
+  }).then((order) => {
+    notifyCartUpdated();
+    return order;
   });
 }
 
@@ -38,6 +42,9 @@ export function addCartItem(
     auth: true,
     body: { variantId, quantity },
     signal: options?.signal,
+  }).then((cart) => {
+    notifyCartUpdated();
+    return cart;
   });
 }
 
@@ -51,6 +58,9 @@ export function updateCartItem(
     auth: true,
     body: { quantity },
     signal: options?.signal,
+  }).then((cart) => {
+    notifyCartUpdated();
+    return cart;
   });
 }
 
@@ -62,5 +72,8 @@ export function removeCartItem(
     method: "DELETE",
     auth: true,
     signal: options?.signal,
+  }).then((cart) => {
+    notifyCartUpdated();
+    return cart;
   });
 }

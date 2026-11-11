@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { FieldError, inputClass } from "@/components/auth/auth-shell";
@@ -34,6 +34,10 @@ export default function SellerApplicationClient() {
   const [submittedApplication, setSubmittedApplication] =
     useState<SellerApplication | null>(null);
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    void refreshSession();
+  }, [refreshSession]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
